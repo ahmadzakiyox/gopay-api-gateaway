@@ -261,3 +261,18 @@ async function prosesPembayaranCheckout(nominalTagihan) {
 | `401 Unauthorized (GoJek API)` | Cookie / Token GoPay telah kedaluwarsa atau di-*force logout*. | Gateway akan otomatis melakukan login ulang dari Email & Password di `.env`. Jika masih gagal, pastikan `GOPAY_EMAIL` dan `GOPAY_PASSWORD` benar. |
 | `410 Gone (QR expired)` | Link gambar QR Code telah melewati batas waktu 5 menit. | Buat QRIS baru via `POST /create-qris`. |
 | `paid: false` | Pembayaran belum masuk atau transaksi sudah pernah diklaim dalam 24 jam. | Lakukan pengecekan ulang setelah pembeli menyelesaikan transfer di HP. |
+
+---
+
+## ☕ Dukungan & Donasi
+
+Proyek ini dibuat untuk membantu mempermudah proses pembayaran untuk teman-teman developer dan merchant. Jika proyek **GoPay API Gateway** ini bermanfaat dan membantu bisnis Anda, Anda bisa mendukung pengembangan proyek ini melalui donasi!
+
+**Silakan scan QRIS di bawah ini untuk berdonasi:**
+
+<p align="center">
+  <img src="qris-donasi.png" alt="QRIS Donasi" width="300"/>
+</p>
+
+💡 **Punya ide fitur baru, pertanyaan, atau butuh bantuan integrasi?** 
+Jangan ragu untuk menghubungi saya di Telegram: **[@ahmadzaki_yo](https://t.me/ahmadzaki_yo)**
