@@ -1,6 +1,8 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const PORT_SERVER_DEFAULT = process.env.PORT || 3000;
@@ -13,6 +15,29 @@ const MERCHANT_ID_DEFAULT = 'G020877062';
 const daftarTransaksiYangSudahDiklaimMap = new Map();
 const daftarLogAktivitasMemoriArray = [];
 const penyimpananPenyimpanGambarQRISMap = new Map();
+
+const CACHE_FILE = path.join(__dirname, '.gopay_cache.json');
+
+function saveCookieToFile(cookie) {
+    try {
+        fs.writeFileSync(CACHE_FILE, JSON.stringify({ gopay_cookie: cookie }), 'utf-8');
+        catatLogAktivitas('INFO', 'Cookie berhasil disimpan secara permanen ke ' + CACHE_FILE);
+    } catch (err) {
+        catatLogAktivitas('ERROR', 'Gagal menyimpan cookie ke file: ' + err.message);
+    }
+}
+
+function loadCookieFromFile() {
+    try {
+        if (fs.existsSync(CACHE_FILE)) {
+            const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+            return data.gopay_cookie || null;
+        }
+    } catch (err) {
+        catatLogAktivitas('ERROR', 'Gagal membaca cookie dari file: ' + err.message);
+    }
+    return null;
+}
 
 function catatLogAktivitas(tipeLog, pesanLog, detailLog = null) {
     const waktuISO = new Date().toISOString();
@@ -96,7 +121,7 @@ function buatHeaderPermintaanGojek(accessToken, teksCookie, userAgentKlien) {
 }
 
 const autentikasiApiKey = (permintaan, respon, lanjut) => {
-    const apiKeyDiterima = permintaan.headers['x-api-key'] || permintaan.query.api_key;
+    const apiKeyDiterima = permintaan.headers['x-api-key'] || permintaan.query.api_key || permintaan.query.apikey;
     if (!apiKeyDiterima || apiKeyDiterima !== process.env.API_KEY) {
         return respon.status(401).json({ success: false, message: 'Autentikasi Gagal: API Key Tidak Valid' });
     }
@@ -117,108 +142,6 @@ app.get('/health', (permintaan, respon) => {
 
 app.get('/api/health', (permintaan, respon) => {
     respon.json({ success: true, message: 'Layanan API GoPay Berfungsi Normal', timestamp: new Date() });
-});
-
-app.post('/update-token', autentikasiApiKey, (permintaan, respon) => {
-    const { token, cookie } = permintaan.body;
-    const nilaitokenBaru = cookie || token;
-    if (!nilaitokenBaru) {
-        return respon.status(400).json({ success: false, error: 'Wajib Menyediakan Token Atau Cookie di Body Request' });
-    }
-    process.env.GOPAY_COOKIE = nilaitokenBaru;
-    catatLogAktivitas('INFO', 'Cookie/Token GoPay Berhasil Diperbarui via API');
-    respon.json({ success: true, data: { message: 'Token dan Cookie Berhasil Diperbarui' } });
-});
-
-app.post('/auth/request-otp', autentikasiApiKey, async (permintaan, respon) => {
-    const { phoneNumber } = permintaan.body;
-    if (!phoneNumber) {
-        return respon.status(400).json({ success: false, message: 'Wajib Menyediakan Nomor Telepon' });
-    }
-
-    try {
-        const formatNomorTelepon = phoneNumber.startsWith('0') ? `+62${phoneNumber.slice(1)}` : phoneNumber;
-        const responGoJek = await axios.post('https://api.gojekapi.com/v4/customers/login_with_phone', {
-            phone_number: formatNomorTelepon,
-            client_id: 'go-merchant-web'
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'authentication-type': 'go-id',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
-                'Origin': 'https://portal.gofoodmerchant.co.id',
-                'Referer': 'https://portal.gofoodmerchant.co.id/'
-            },
-            timeout: 10000
-        });
-
-        const tokenOTPRespon = responGoJek.data?.data?.otp_token || responGoJek.data?.otp_token || 'TOKEN_OTP_GENERATED';
-        catatLogAktivitas('INFO', `Permintaan OTP Berhasil Dikirim ke Nomor: ${formatNomorTelepon}`);
-
-        respon.json({
-            success: true,
-            message: 'Kode OTP Berhasil Dikirim ke Nomor HP Anda',
-            data: {
-                phone_number: formatNomorTelepon,
-                otp_token: tokenOTPRespon
-            }
-        });
-    } catch (gagalMintaOTP) {
-        const detailPesanGagal = gagalMintaOTP.response ? JSON.stringify(gagalMintaOTP.response.data) : gagalMintaOTP.message;
-        catatLogAktivitas('ERROR', `Gagal Mengirimkan OTP: ${detailPesanGagal}`);
-        respon.status(500).json({ success: false, message: 'Gagal Meminta Kode OTP dari GoJek', error: detailPesanGagal });
-    }
-});
-
-app.post('/auth/verify-otp', autentikasiApiKey, async (permintaan, respon) => {
-    const { phoneNumber, otpCode, otpToken } = permintaan.body;
-    if (!phoneNumber || !otpCode) {
-        return respon.status(400).json({ success: false, message: 'Wajib Menyediakan Nomor Telepon dan Kode OTP' });
-    }
-
-    try {
-        const formatNomorTelepon = phoneNumber.startsWith('0') ? `+62${phoneNumber.slice(1)}` : phoneNumber;
-        const responVerifikasi = await axios.post('https://api.gojekapi.com/v4/customers/login_with_phone/verify', {
-            phone_number: formatNomorTelepon,
-            otp: otpCode,
-            otp_token: otpToken || ''
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'authentication-type': 'go-id',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
-                'Origin': 'https://portal.gofoodmerchant.co.id',
-                'Referer': 'https://portal.gofoodmerchant.co.id/'
-            },
-            timeout: 10000
-        });
-
-        const dataHasilToken = responVerifikasi.data?.data || responVerifikasi.data;
-        const accessTokenBaru = dataHasilToken.access_token;
-        const refreshTokenBaru = dataHasilToken.refresh_token;
-
-        if (accessTokenBaru) {
-            const cookieBaruOtomatis = `access_token=${accessTokenBaru}; refresh_token=${refreshTokenBaru || ''}; auth_method=goid`;
-            process.env.GOPAY_COOKIE = cookieBaruOtomatis;
-            catatLogAktivitas('SUCCESS', `Login OTP Berhasil! Token Baru Otomatis Disimpan di Memory Gateway.`);
-
-            respon.json({
-                success: true,
-                message: 'Verifikasi OTP Berhasil! Token Baru Otomatis Aktif',
-                data: {
-                    access_token: accessTokenBaru,
-                    refresh_token: refreshTokenBaru,
-                    cookie: cookieBaruOtomatis
-                }
-            });
-        } else {
-            respon.status(400).json({ success: false, message: 'Verifikasi Gagal: Token Tidak Ditemukan dalam Respon' });
-        }
-    } catch (gagalVerifikasiOTP) {
-        const detailPesanGagal = gagalVerifikasiOTP.response ? JSON.stringify(gagalVerifikasiOTP.response.data) : gagalVerifikasiOTP.message;
-        catatLogAktivitas('ERROR', `Gagal Verifikasi OTP: ${detailPesanGagal}`);
-        respon.status(500).json({ success: false, message: 'Gagal Memverifikasi Kode OTP', error: detailPesanGagal });
-    }
 });
 
 app.post('/auth/login-email', autentikasiApiKey, async (permintaan, respon) => {
@@ -267,7 +190,8 @@ app.post('/auth/login-email', autentikasiApiKey, async (permintaan, respon) => {
         if (accessTokenDiterima) {
             const cookieSesiFormatOtomatis = `access_token=${accessTokenDiterima}; refresh_token=${refreshTokenDiterima || ''}; auth_method=goid`;
             process.env.GOPAY_COOKIE = cookieSesiFormatOtomatis;
-            catatLogAktivitas('SUCCESS', `Login Email Berhasil! Token Baru Otomatis Disimpan di Memory Gateway.`);
+            saveCookieToFile(cookieSesiFormatOtomatis);
+            catatLogAktivitas('SUCCESS', `Login Email Berhasil! Token Baru Otomatis Disimpan di Memory dan File.`);
 
             respon.json({
                 success: true,
@@ -289,7 +213,7 @@ app.post('/auth/login-email', autentikasiApiKey, async (permintaan, respon) => {
 });
 
 app.get('/token-status', autentikasiApiKey, async (permintaan, respon) => {
-    const teksCookieAktif = process.env.GOPAY_COOKIE;
+    const teksCookieAktif = loadCookieFromFile() || process.env.GOPAY_COOKIE;
     if (!teksCookieAktif) {
         return respon.json({ success: false, data: { token_status: 'invalid', message: 'Cookie Belum Dikonfigurasi' } });
     }
@@ -366,7 +290,7 @@ app.get('/qr/:id', (permintaan, respon) => {
 });
 
 app.get('/transactions', autentikasiApiKey, async (permintaan, respon) => {
-    const teksCookieAktif = permintaan.headers['x-gopay-cookie'] || process.env.GOPAY_COOKIE;
+    const teksCookieAktif = permintaan.headers['x-gopay-cookie'] || loadCookieFromFile() || process.env.GOPAY_COOKIE;
     if (!teksCookieAktif) return respon.status(400).json({ success: false, error: 'GoPay Cookie Wajib Disediakan' });
 
     try {
@@ -420,7 +344,7 @@ app.get('/transactions/all', autentikasiApiKey, async (permintaan, respon) => {
 
 app.post('/check-payment', autentikasiApiKey, async (permintaan, respon) => {
     const { amount, startTime } = permintaan.body;
-    const teksCookieAktif = permintaan.headers['x-gopay-cookie'] || process.env.GOPAY_COOKIE;
+    const teksCookieAktif = permintaan.headers['x-gopay-cookie'] || loadCookieFromFile() || process.env.GOPAY_COOKIE;
 
     if (!teksCookieAktif) {
         return respon.status(400).json({

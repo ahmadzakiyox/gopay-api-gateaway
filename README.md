@@ -3,9 +3,9 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2020.0.0-blue.svg?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Express Framework](https://img.shields.io/badge/Express-4.18.3-lightgrey.svg?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
 [![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Stateless Architecture](https://img.shields.io/badge/Architecture-100%25%20Stateless-brightgreen.svg?style=for-the-badge)](https://en.wikipedia.org/wiki/Stateless_protocol)
+[![Architecture](https://img.shields.io/badge/Architecture-Stateful%20%26%20Stateless-brightgreen.svg?style=for-the-badge)](#)
 
-API Gateway berkinerja tinggi, ringan, dan **100% Stateless (tanpa database & tanpa background polling cron)** untuk otomatisasi verifikasi mutasi transaksi GoPay Merchant, pencetakan QRIS Dinamis berstandar EMVCo (CRC16-CCITT) 5 Menit, serta pemantauan status transaksi realtime.
+API Gateway berkinerja tinggi, ringan, dan fleksibel (mendukung **Stateful via VPS** maupun **Stateless via Cloud**) tanpa database permanen, untuk otomatisasi verifikasi mutasi transaksi GoPay Merchant, pencetakan QRIS Dinamis berstandar EMVCo (CRC16-CCITT) 5 Menit, serta pemantauan status transaksi realtime.
 
 ---
 
@@ -58,8 +58,10 @@ sequenceDiagram
 
 ## 🎯 Cara Kerja & Konsep Utama Sistem
 
-### 1. Zero-Database (100% Stateless)
-Sistem ini tidak memerlukan database permanen (PostgreSQL/MySQL/SQLite). Data sesi disimpan di ram memori sementara dan variabel lingkungan (`.env`). Hal ini membuat sistem **sangat ringan dan kebal terhadap kehilangan data saat disebar di server cloud serverless gratis (Render, Vercel, Railway)**.
+### 1. Zero-Database (Hybrid: Stateful / Stateless)
+Sistem ini tidak memerlukan database permanen (PostgreSQL/MySQL/SQLite). Data sesi diatur sesuai lingkungan server Anda:
+- **Mode Stateful (Untuk VPS/Dedicated)**: Cookie disimpan otomatis ke file lokal `.gopay_cache.json`. Saat Node.js atau VPS direstart, sesi Anda tetap aman tanpa perlu login ulang.
+- **Mode Stateless (Untuk Render/Vercel)**: Sesi disimpan di memori RAM. Sistem ini kebal terhadap kesalahan *file-system* cloud gratisan dan dapat dikombinasikan dengan sistem *Auto-Login* dari klien.
 
 ### 2. In-Memory Dynamic QRIS EMVCo Generator (5 Menit Expiry)
 Proses pembuatan QRIS Dinamis **0% menembak API GoJek**. Server `server.js` membaca QRIS Statis stiker Anda (`QRIS_STATIC`), menyuntikkan Tag Nominal `54`, dan menghitung ulang kode checksum 4-karakter **CRC16-CCITT** secara in-memory dalam hitungan milidetik.
@@ -71,26 +73,12 @@ Jika dua pelanggan berbeda melakukan checkout dengan nominal yang sama (misal Rp
 
 ---
 
-## 🔑 3 Metode Autentikasi / Login
+## 🔑 Metode Autentikasi / Login
 
-Sistem gateway ini menyediakan 3 pilihan metode login yang fleksibel:
+Sistem gateway ini menggunakan metode login otomatis menggunakan kredensial email & password merchant GoBiz Anda.
 
-### 🟢 Metode 1: Cookie Browser (Rekomendasi Utama — Paling Kebal Blokir)
-Menggunakan Cookie Sesi resmi yang diambil dari browser yang sudah terverifikasi.
-
-- **Cara Mengambil Cookie**:
-  1. Buka browser dan login ke portal resmi [portal.gofoodmerchant.co.id](https://portal.gofoodmerchant.co.id/).
-  2. Tekan `F12` -> Tab **Network** -> Filter **Fetch/XHR**.
-  3. Refresh halaman transaksi, klik salah satu request (`/transactions`).
-  4. Salin seluruh isi **`Cookie`** dari **Request Headers**.
-  5. Tempelkan nilai tersebut ke `GOPAY_COOKIE=` di `.env`.
-
-- **Ketahanan**: Sesi cookie bertahan **hingga 30 hari** selama Anda **TIDAK menekan tombol Log Out** di browser (cukup tutup tab/browser).
-
----
-
-### 🔵 Metode 2: Login Email & Password (`POST /auth/login-email`)
-Berguna untuk melakukan login otomatis menggunakan kredensial email & password merchant.
+### Login Email & Password (`POST /auth/login-email`)
+Berguna untuk melakukan login otomatis dan mendapatkan sesi cookie segar dari GoJek. Pada VPS (Mode Stateful), ini hanya perlu dipanggil sekali dan sesi akan tersimpan di `.gopay_cache.json`.
 
 - **Endpoint**: `POST /auth/login-email`
 - **Request Body**:
@@ -100,28 +88,6 @@ Berguna untuk melakukan login otomatis menggunakan kredensial email & password m
     "password": "PasswordMerchant123"
   }
   ```
-
----
-
-### 🟡 Metode 3: Login Nomor HP & OTP (`POST /auth/request-otp` & `/auth/verify-otp`)
-Berguna jika Anda ingin memperbarui token saat tidak sedang membawa laptop/buka F12, langsung dari HP via SMS/WA OTP.
-
-1. **Meminta OTP (`POST /auth/request-otp`)**:
-   ```json
-   {
-     "phoneNumber": "081234567890"
-   }
-   ```
-2. **Memverifikasi OTP (`POST /auth/verify-otp`)**:
-   ```json
-   {
-     "phoneNumber": "081234567890",
-     "otpCode": "123456",
-     "otpToken": "TOKEN_OTP_DARI_LANGKAH_1"
-   }
-   ```
-
----
 
 ## 📡 Dokumentasi API Endpoints Lengkap
 
@@ -212,7 +178,7 @@ sudo npm install -y -g pm2
 
 #### 2. Clone & Setup Proyek
 ```bash
-git clone https://github.com/username/gopay-gateway.git
+git clone https://github.com/ahmadzakiyox/dana-api-gateaway.git
 cd gopay-gateway
 npm install
 cp .env.example .env
