@@ -58,10 +58,17 @@ sequenceDiagram
 
 ## 🎯 Cara Kerja & Konsep Utama Sistem
 
-### 1. Zero-Database (Hybrid: Stateful / Stateless)
-Sistem ini tidak memerlukan database permanen (PostgreSQL/MySQL/SQLite). Data sesi diatur sesuai lingkungan server Anda:
-- **Mode Stateful (Untuk VPS/Dedicated)**: Cookie disimpan otomatis ke file lokal `.gopay_cache.json`. Saat Node.js atau VPS direstart, sesi Anda tetap aman tanpa perlu login ulang.
-- **Mode Stateless (Untuk Render/Vercel)**: Sesi disimpan di memori RAM. Sistem ini kebal terhadap kesalahan *file-system* cloud gratisan dan dapat dikombinasikan dengan sistem *Auto-Login* dari klien.
+> [!WARNING]
+> ### 🚨 WAJIB MENGGUNAKAN VPS (Tidak Mendukung Serverless Cloud Gratis)
+> Sistem *Autonomous Auto-Login* gateway ini **WAJIB di-deploy di VPS (Virtual Private Server) atau Dedicated Server** yang memiliki penyimpanan permanen (*Persistent Storage*) seperti Hostinger, DigitalOcean, AWS EC2, Contabo, dsb.
+> 
+> **JANGAN menggunakan layanan cloud gratisan/ephemeral seperti Render.com, Vercel, Heroku, atau Railway!**
+> Layanan tersebut sering melakukan "Sleep" dan *restart* yang **menghapus semua file lokal** (termasuk `.gopay_cache.json`). Jika ini terjadi, gateway Anda akan melakukan *spam Auto-Login* ke server Gojek setiap kali server terbangun, yang sangat berisiko membuat akun GoBiz Anda terkena limitasi atau pemblokiran dari Gojek.
+
+### 1. Autonomous Caching & Zero-Database
+Sistem ini tidak memerlukan database besar (PostgreSQL/MySQL). Penyimpanan sesi disesuaikan secara mandiri oleh sistem:
+- Setiap kali *login* sukses, gateway akan otomatis membuat dan menyimpan token sesi ke dalam file `.gopay_cache.json` di direktori VPS Anda. 
+- Saat aplikasi Node.js atau PM2 di-restart, gateway tinggal membaca ulang file JSON tersebut tanpa perlu melakukan *login* ulang.
 
 ### 2. In-Memory Dynamic QRIS EMVCo Generator (5 Menit Expiry)
 Proses pembuatan QRIS Dinamis **0% menembak API GoJek**. Server `server.js` membaca QRIS Statis stiker Anda (`QRIS_STATIC`), menyuntikkan Tag Nominal `54`, dan menghitung ulang kode checksum 4-karakter **CRC16-CCITT** secara in-memory dalam hitungan milidetik.
