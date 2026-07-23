@@ -305,7 +305,7 @@ Kalau project ini bermanfaat buat kamu, traktir saya kopi ya! ☕
 Scan QRIS di bawah (GoPay / semua e-wallet):
 
 <p align="center">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=00020101021126580016ID.CO.QRIS.WWW01189360091400000000000215ID10200000000005204581253033605802ID5916MERCHANT GOPAY6007JAKARTA61051234562070703A016304C2E4" alt="QRIS Donasi ahmadzakiyo" width="200" />
+  <img src="https://raw.githubusercontent.com/ahmadzakiyox/DB/main/6269360055874426106_121.jpg" alt="QRIS Donasi ahmadzakiyo" width="250" />
   <br/>
   <sub>Nominal bebas — terima kasih banyak! 🙏</sub>
 </p>
