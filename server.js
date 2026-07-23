@@ -6,173 +6,150 @@ const path = require('path');
 require('dotenv').config();
 const sessionManager = require('./sessionManager');
 
-const PORT_SERVER_DEFAULT = process.env.PORT || 3000;
-const BATAS_MAKSIMAL_LOG_MEMORI = 100;
-const DURASI_HAPUS_TRANSAKSI_LAMA_MS = 24 * 60 * 60 * 1000;
-const DURASI_KEDALUWARSA_QRIS_MS = 5 * 60 * 1000;
-const URL_API_GOJEK_TRANSAKSI = 'https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions';
-const MERCHANT_ID_DEFAULT = 'G020877062';
-const daftarTransaksiYangSudahDiklaimMap = new Map();
-const daftarLogAktivitasMemoriArray = [];
-const penyimpananPenyimpanGambarQRISMap = new Map();
+const PORT = process.env.PORT || 3000;
+const MAX_LOGS = 100;
+const CLAIMED_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 jam
+const QRIS_EXPIRY_MS = 5 * 60 * 1000; // 5 menit
+const GOJEK_TRANSACTIONS_URL = 'https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions';
+const DEFAULT_MERCHANT_ID = 'G020877062';
+
+const claimedTransactions = new Map();
+const activityLogs = [];
+const qrisStore = new Map();
 
 const CACHE_FILE = path.join(__dirname, '.gopay_cache.json');
 
 function saveCookieToFile(cookie) {
     try {
         fs.writeFileSync(CACHE_FILE, JSON.stringify({ gopay_cookie: cookie }), 'utf-8');
-        catatLogAktivitas('INFO', 'Cookie berhasil disimpan secara permanen ke ' + CACHE_FILE);
+        logActivity('INFO', 'Cookie berhasil disimpan ke ' + CACHE_FILE);
     } catch (err) {
-        catatLogAktivitas('ERROR', 'Gagal menyimpan cookie ke file: ' + err.message);
+        logActivity('ERROR', 'Gagal simpan cookie ke file: ' + err.message);
     }
 }
 
-function loadCookieFromFile() {
-    try {
-        if (fs.existsSync(CACHE_FILE)) {
-            const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-            return data.gopay_cookie || null;
-        }
-    } catch (err) {
-        catatLogAktivitas('ERROR', 'Gagal membaca cookie dari file: ' + err.message);
+function logActivity(type, message, details = null) {
+    const timestamp = new Date().toISOString();
+    const logObj = { id: Date.now(), timestamp, type, message, details };
+    activityLogs.unshift(logObj);
+    if (activityLogs.length > MAX_LOGS) {
+        activityLogs.pop();
     }
-    return null;
+    console.log(`[${timestamp}] [${type}] ${message}`);
 }
 
-function catatLogAktivitas(tipeLog, pesanLog, detailLog = null) {
-    const waktuISO = new Date().toISOString();
-    const objekLog = { id: Date.now(), timestamp: waktuISO, type: tipeLog, message: pesanLog, details: detailLog };
-    daftarLogAktivitasMemoriArray.unshift(objekLog);
-    if (daftarLogAktivitasMemoriArray.length > BATAS_MAKSIMAL_LOG_MEMORI) {
-        daftarLogAktivitasMemoriArray.pop();
-    }
-    console.log(`[${waktuISO}] [${tipeLog}] ${pesanLog}`);
-}
-
-function bersihkanTransaksiKadaluwarsa() {
-    const waktuSekarangMs = Date.now();
-    for (const [idTransaksi, waktuSimpanMs] of daftarTransaksiYangSudahDiklaimMap.entries()) {
-        if (waktuSekarangMs - waktuSimpanMs > DURASI_HAPUS_TRANSAKSI_LAMA_MS) {
-            daftarTransaksiYangSudahDiklaimMap.delete(idTransaksi);
+// Clean up expired claimed transactions
+function cleanExpiredTransactions() {
+    const now = Date.now();
+    for (const [txId, savedAt] of claimedTransactions.entries()) {
+        if (now - savedAt > CLAIMED_CLEANUP_INTERVAL_MS) {
+            claimedTransactions.delete(txId);
         }
     }
 }
-setInterval(bersihkanTransaksiKadaluwarsa, 60 * 60 * 1000);
+setInterval(cleanExpiredTransactions, 60 * 60 * 1000);
 
-async function autoRefreshSessionPeriodik() {
+// Periodik auto-refresh session (tiap 6 jam)
+async function autoRefreshSessionPeriodically() {
     try {
         const session = sessionManager.loadSession();
         if (session && session.refresh_token) {
             if (sessionManager.isExpired(session)) {
-                catatLogAktivitas('INFO', 'Background Timer: Token GoBiz mendekati kadaluwarsa. Memulai auto-refresh...');
+                logActivity('INFO', 'Auto Refresh: Token mendekati kedaluwarsa, memperbarui sesi...');
                 await sessionManager.refreshSession();
             }
         }
     } catch (err) {
-        catatLogAktivitas('ERROR', `Gagal jalankan autoRefreshSessionPeriodik: ${err.message}`);
+        logActivity('ERROR', `Gagal auto refresh session: ${err.message}`);
     }
 }
-setInterval(autoRefreshSessionPeriodik, 6 * 60 * 60 * 1000);
+setInterval(autoRefreshSessionPeriodically, 6 * 60 * 60 * 1000);
 
-
-function hitungChecksumCRC16(teksPayloadTanpaCRC) {
-    let nilaiCRC = 0xFFFF;
-    for (let indeksKarakter = 0; indeksKarakter < teksPayloadTanpaCRC.length; indeksKarakter++) {
-        nilaiCRC ^= teksPayloadTanpaCRC.charCodeAt(indeksKarakter) << 8;
-        for (let indeksBit = 0; indeksBit < 8; indeksBit++) {
-            if ((nilaiCRC & 0x8000) !== 0) {
-                nilaiCRC = ((nilaiCRC << 1) ^ 0x1021) & 0xFFFF;
+// Hitung Checksum CRC16 EMVCo untuk QRIS
+function calculateCRC16(payload) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < payload.length; i++) {
+        crc ^= payload.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) {
+            if ((crc & 0x8000) !== 0) {
+                crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
             } else {
-                nilaiCRC = (nilaiCRC << 1) & 0xFFFF;
+                crc = (crc << 1) & 0xFFFF;
             }
         }
     }
-    return nilaiCRC.toString(16).toUpperCase().padStart(4, '0');
+    return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
-function buatQRISDinamis(qrisStatisTemplate, nominalRupiah) {
-    if (!qrisStatisTemplate) return null;
-    let payloadDasar = qrisStatisTemplate.slice(0, -4);
-    if (payloadDasar.endsWith('6304')) payloadDasar = payloadDasar.slice(0, -4);
+// Generate QRIS Dinamis dengan nominal custom
+function generateDynamicQRIS(staticTemplate, amount) {
+    if (!staticTemplate) return null;
+    let base = staticTemplate.slice(0, -4);
+    if (base.endsWith('6304')) base = base.slice(0, -4);
 
-    const teksNominal = parseInt(nominalRupiah, 10).toString();
-    const panjangTag54 = teksNominal.length.toString().padStart(2, '0');
-    const tag54Format = `54${panjangTag54}${teksNominal}`;
+    const amountStr = parseInt(amount, 10).toString();
+    const tag54Length = amountStr.length.toString().padStart(2, '0');
+    const tag54 = `54${tag54Length}${amountStr}`;
 
-    let payloadHasil = payloadDasar;
-    if (payloadHasil.includes('54')) {
-        payloadHasil = payloadHasil.replace(/54\d{2}\d+/, tag54Format);
+    let result = base;
+    if (result.includes('54')) {
+        result = result.replace(/54\d{2}\d+/, tag54);
     } else {
-        const posisiTag58 = payloadHasil.indexOf('5802');
-        if (posisiTag58 !== -1) {
-            payloadHasil = payloadHasil.slice(0, posisiTag58) + tag54Format + payloadHasil.slice(posisiTag58);
+        const idx58 = result.indexOf('5802');
+        if (idx58 !== -1) {
+            result = result.slice(0, idx58) + tag54 + result.slice(idx58);
         } else {
-            payloadHasil += tag54Format;
+            result += tag54;
         }
     }
 
-    if (!payloadHasil.endsWith('6304')) {
-        payloadHasil += '6304';
+    if (!result.endsWith('6304')) {
+        result += '6304';
     }
 
-    const nilaiCRC16 = hitungChecksumCRC16(payloadHasil);
-    return payloadHasil + nilaiCRC16;
+    const checksum = calculateCRC16(result);
+    return result + checksum;
 }
 
-function ekstrakAccessTokenDariCookie(teksCookie) {
-    if (!teksCookie) return null;
-    const pencocokanToken = teksCookie.match(/access_token=([^;]+)/);
-    return pencocokanToken ? pencocokanToken[1] : null;
-}
-
-function buatHeaderPermintaanGojek(accessToken, teksCookie, userAgentKlien) {
-    return {
-        'Authorization': accessToken ? `Bearer ${accessToken}` : teksCookie,
-        'authentication-type': 'go-id',
-        'Accept': 'application/json, text/plain, */*',
-        'Origin': 'https://portal.gofoodmerchant.co.id',
-        'Referer': 'https://portal.gofoodmerchant.co.id/',
-        'User-Agent': userAgentKlien || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36'
-    };
-}
-
-const autentikasiApiKey = (permintaan, respon, lanjut) => {
-    const apiKeyDiterima = permintaan.headers['x-api-key'] || permintaan.query.api_key || permintaan.query.apikey;
-    if (!apiKeyDiterima || apiKeyDiterima !== process.env.API_KEY) {
-        return respon.status(401).json({ success: false, message: 'Autentikasi Gagal: API Key Tidak Valid' });
+// Middleware Proteksi API Key
+const apiKeyAuth = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'] || req.query.api_key || req.query.apikey;
+    if (!apiKey || apiKey !== process.env.API_KEY) {
+        return res.status(401).json({ success: false, message: 'Autentikasi Gagal: API Key tidak valid' });
     }
-    lanjut();
+    next();
 };
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (permintaan, respon) => {
-    respon.send('GoPay Partner API Gateway Berjalan');
+app.get('/', (req, res) => {
+    res.send('GoPay Partner API Gateway Berjalan');
 });
 
-app.get('/health', (permintaan, respon) => {
-    respon.json({ status: 'OK', service: 'GoPay Partner API Gateway', timestamp: new Date() });
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', service: 'GoPay Partner API Gateway', timestamp: new Date() });
 });
 
-app.get('/api/health', (permintaan, respon) => {
-    respon.json({ success: true, message: 'Layanan API GoPay Berfungsi Normal', timestamp: new Date() });
+app.get('/api/health', (req, res) => {
+    res.json({ success: true, message: 'Layanan API GoPay Berfungsi Normal', timestamp: new Date() });
 });
 
+// Fallback Auto-Login via Password jika di-set di .env
 async function autoLoginGojek() {
     const email = process.env.GOPAY_EMAIL;
     const password = process.env.GOPAY_PASSWORD;
 
     if (!email || !password) {
-        catatLogAktivitas('ERROR', 'GOPAY_EMAIL atau GOPAY_PASSWORD belum diatur di .env. Auto-login dibatalkan.');
+        logActivity('ERROR', 'GOPAY_EMAIL / GOPAY_PASSWORD belum diisi di .env. Auto-login dilewati.');
         return null;
     }
 
     try {
-        catatLogAktivitas('INFO', 'Melakukan auto-login secara mandiri menggunakan email dari .env...');
+        logActivity('INFO', 'Mencoba auto-login via Email & Password...');
         await axios.post('https://api.gobiz.co.id/goid/login/request', {
-            email: email,
+            email,
             login_type: 'password',
             client_id: 'go-biz-web-new'
         }, {
@@ -185,12 +162,12 @@ async function autoLoginGojek() {
                 'Referer': 'https://portal.gofoodmerchant.co.id/'
             },
             timeout: 10000
-        }).catch(e => null);
+        }).catch(() => null);
 
-        const responToken = await axios.post('https://api.gobiz.co.id/goid/token', {
+        const tokenRes = await axios.post('https://api.gobiz.co.id/goid/token', {
             client_id: 'go-biz-web-new',
             grant_type: 'password',
-            data: { email: email, password: password }
+            data: { email, password }
         }, {
             headers: {
                 'Content-Type': 'application/json',
@@ -203,35 +180,36 @@ async function autoLoginGojek() {
             timeout: 10000
         });
 
-        const dataToken = responToken.data;
-        const accessToken = dataToken.access_token || dataToken.data?.access_token;
-        const refreshToken = dataToken.refresh_token || dataToken.data?.refresh_token;
+        const tokenData = tokenRes.data;
+        const accessToken = tokenData.access_token || tokenData.data?.access_token;
+        const refreshToken = tokenData.refresh_token || tokenData.data?.refresh_token;
 
         if (accessToken) {
-            const cookieBaru = `access_token=${accessToken}; refresh_token=${refreshToken || ''}; auth_method=goid`;
-            process.env.GOPAY_COOKIE = cookieBaru;
-            saveCookieToFile(cookieBaru);
-            catatLogAktivitas('SUCCESS', `Auto-Login Berhasil! Token disimpan ke file .gopay_cache.json.`);
-            return cookieBaru;
+            const newCookie = `access_token=${accessToken}; refresh_token=${refreshToken || ''}; auth_method=goid`;
+            process.env.GOPAY_COOKIE = newCookie;
+            saveCookieToFile(newCookie);
+            logActivity('SUCCESS', 'Auto-Login berhasil! Cookie disimpan.');
+            return newCookie;
         } else {
-            catatLogAktivitas('ERROR', 'Auto-Login Gagal: Token Tidak Ditemukan');
+            logActivity('ERROR', 'Auto-Login gagal: Token tidak ditemukan dalam respon.');
             return null;
         }
-    } catch (error) {
-        catatLogAktivitas('ERROR', `Gagal Auto-Login: ${error.message}`);
+    } catch (err) {
+        logActivity('ERROR', `Gagal Auto-Login: ${err.message}`);
         return null;
     }
 }
 
-app.post('/auth/request-otp', autentikasiApiKey, async (permintaan, respon) => {
-    const phone = permintaan.body.phone_number || permintaan.body.phone || process.env.GOPAY_PHONE;
+// Request OTP Login
+app.post('/auth/request-otp', apiKeyAuth, async (req, res) => {
+    const phone = req.body.phone_number || req.body.phone || process.env.GOPAY_PHONE;
     if (!phone) {
-        return respon.status(400).json({ success: false, message: 'Wajib menyediakan nomor HP (phone_number)' });
+        return res.status(400).json({ success: false, message: 'Wajib menyediakan nomor HP (phone_number)' });
     }
 
     try {
-        catatLogAktivitas('INFO', `Meminta kode OTP GoJek untuk nomor: ${phone}`);
-        const responRequest = await axios.post('https://api.gobiz.co.id/goid/login/request', {
+        logActivity('INFO', `Request OTP GoJek untuk nomor: ${phone}`);
+        const reqRes = await axios.post('https://api.gobiz.co.id/goid/login/request', {
             phone_number: phone,
             login_type: 'otp',
             client_id: 'go-biz-web-new'
@@ -247,11 +225,11 @@ app.post('/auth/request-otp', autentikasiApiKey, async (permintaan, respon) => {
             timeout: 10000
         });
 
-        const dataRespon = responRequest.data;
-        const otpToken = dataRespon.otp_token || dataRespon.data?.otp_token || dataRespon.login_token;
+        const resData = reqRes.data;
+        const otpToken = resData.otp_token || resData.data?.otp_token || resData.login_token;
 
-        catatLogAktivitas('SUCCESS', `Kode OTP telah dikirim ke nomor HP ${phone}`);
-        respon.json({
+        logActivity('SUCCESS', `Kode OTP dikirim ke nomor HP ${phone}`);
+        res.json({
             success: true,
             message: `Kode OTP berhasil dikirim ke nomor ${phone}`,
             data: {
@@ -259,22 +237,23 @@ app.post('/auth/request-otp', autentikasiApiKey, async (permintaan, respon) => {
                 phone_number: phone
             }
         });
-    } catch (error) {
-        const detailGagal = error.response ? JSON.stringify(error.response.data) : error.message;
-        catatLogAktivitas('ERROR', `Gagal meminta OTP: ${detailGagal}`);
-        respon.status(500).json({ success: false, message: 'Gagal Meminta Kode OTP GoJek', error: detailGagal });
+    } catch (err) {
+        const errorDetail = err.response ? JSON.stringify(err.response.data) : err.message;
+        logActivity('ERROR', `Gagal request OTP: ${errorDetail}`);
+        res.status(500).json({ success: false, message: 'Gagal meminta kode OTP GoJek', error: errorDetail });
     }
 });
 
-app.post('/auth/verify-otp', autentikasiApiKey, async (permintaan, respon) => {
-    const { otp, otp_token } = permintaan.body;
+// Verifikasi OTP Login
+app.post('/auth/verify-otp', apiKeyAuth, async (req, res) => {
+    const { otp, otp_token } = req.body;
     if (!otp) {
-        return respon.status(400).json({ success: false, message: 'Wajib menyediakan kode OTP (otp)' });
+        return res.status(400).json({ success: false, message: 'Wajib menyediakan kode OTP (otp)' });
     }
 
     try {
-        catatLogAktivitas('INFO', `Memverifikasi kode OTP...`);
-        const responToken = await axios.post('https://api.gobiz.co.id/goid/token', {
+        logActivity('INFO', 'Memverifikasi kode OTP...');
+        const tokenRes = await axios.post('https://api.gobiz.co.id/goid/token', {
             client_id: 'go-biz-web-new',
             grant_type: 'otp',
             data: {
@@ -293,316 +272,323 @@ app.post('/auth/verify-otp', autentikasiApiKey, async (permintaan, respon) => {
             timeout: 10000
         });
 
-        const dataToken = responToken.data;
-        const accessToken = dataToken.access_token || dataToken.data?.access_token;
-        const refreshToken = dataToken.refresh_token || dataToken.data?.refresh_token;
+        const tokenData = tokenRes.data;
+        const accessToken = tokenData.access_token || tokenData.data?.access_token;
+        const refreshToken = tokenData.refresh_token || tokenData.data?.refresh_token;
 
         if (accessToken) {
-            const cookieBaru = `access_token=${accessToken}; refresh_token=${refreshToken || ''}; auth_method=goid`;
+            const newCookie = `access_token=${accessToken}; refresh_token=${refreshToken || ''}; auth_method=goid`;
             const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
             sessionManager.saveSession({
                 phone_number: process.env.GOPAY_PHONE || null,
                 access_token: accessToken,
                 refresh_token: refreshToken,
-                cookie: cookieBaru,
+                cookie: newCookie,
                 updated_at: new Date().toISOString(),
                 expires_at: expiresAt
             });
 
-            process.env.GOPAY_COOKIE = cookieBaru;
-            saveCookieToFile(cookieBaru);
-            catatLogAktivitas('SUCCESS', `Verifikasi OTP Berhasil! Token baru disimpan ke .GOPAY_SESI_JANGAN_DIHAPUS.json.`);
+            process.env.GOPAY_COOKIE = newCookie;
+            saveCookieToFile(newCookie);
+            logActivity('SUCCESS', 'Verifikasi OTP berhasil! Sesi tersimpan.');
 
-            respon.json({
+            res.json({
                 success: true,
-                message: 'Verifikasi OTP Berhasil! Token Baru Aktif & Tersimpan di .GOPAY_SESI_JANGAN_DIHAPUS.json',
+                message: 'Verifikasi OTP Berhasil! Sesi aktif dan tersimpan.',
                 data: {
                     access_token: accessToken,
                     refresh_token: refreshToken,
-                    cookie: cookieBaru
+                    cookie: newCookie
                 }
             });
         } else {
-            respon.status(400).json({ success: false, message: 'Verifikasi Gagal: Token Tidak Ditemukan dalam Respon Server' });
+            res.status(400).json({ success: false, message: 'Verifikasi Gagal: Token tidak ditemukan dalam respon.' });
         }
-    } catch (error) {
-        const detailGagal = error.response ? JSON.stringify(error.response.data) : error.message;
-        catatLogAktivitas('ERROR', `Gagal Verifikasi OTP: ${detailGagal}`);
-        respon.status(500).json({ success: false, message: 'Gagal Memverifikasi OTP GoJek', error: detailGagal });
+    } catch (err) {
+        const errorDetail = err.response ? JSON.stringify(err.response.data) : err.message;
+        logActivity('ERROR', `Gagal verifikasi OTP: ${errorDetail}`);
+        res.status(500).json({ success: false, message: 'Gagal memverifikasi OTP GoJek', error: errorDetail });
     }
 });
 
-app.get('/token-status', autentikasiApiKey, async (permintaan, respon) => {
-    const activeHeaders = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
+// Cek Status Sesi Token
+app.get('/token-status', apiKeyAuth, async (req, res) => {
+    const activeHeaders = await sessionManager.getValidHeaders(req.headers['user-agent']);
     if (!activeHeaders) {
-        return respon.json({ success: false, data: { token_status: 'invalid', message: 'Sesi Belum Dikonfigurasi. Silakan jalankan `node login.js` di terminal.' } });
+        return res.json({ success: false, data: { token_status: 'invalid', message: 'Sesi belum dikonfigurasi. Jalankan `node login.js` di terminal.' } });
     }
     try {
-        const merchantId = process.env.GOPAY_MERCHANT_ID || MERCHANT_ID_DEFAULT;
-        const waktuSekarang = new Date();
-        const waktuSatuJamLaluISO = new Date(waktuSekarang.getTime() - 3600 * 1000).toISOString();
+        const merchantId = process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+        const now = new Date();
+        const oneHourAgo = new Date(now.getTime() - 3600 * 1000).toISOString();
 
-        await axios.get(URL_API_GOJEK_TRANSAKSI, {
+        await axios.get(GOJEK_TRANSACTIONS_URL, {
             headers: activeHeaders,
             params: {
                 from: 0,
                 size: 1,
                 statuses: 'SETTLEMENT,CAPTURE',
                 payment_types: 'QRIS,GOPAY',
-                start_time: waktuSatuJamLaluISO,
-                end_time: waktuSekarang.toISOString(),
+                start_time: oneHourAgo,
+                end_time: now.toISOString(),
                 merchant_ids: merchantId
             },
             timeout: 5000
         });
 
-        respon.json({ success: true, data: { token_status: 'valid', message: 'Token dan Sesi GoPay Merchant Aktif' } });
-    } catch (gagalUjiToken) {
-        respon.json({ success: false, data: { token_status: 'invalid', message: gagalUjiToken.message } });
+        res.json({ success: true, data: { token_status: 'valid', message: 'Token dan Sesi GoPay Merchant Aktif' } });
+    } catch (err) {
+        res.json({ success: false, data: { token_status: 'invalid', message: err.message } });
     }
 });
 
-app.all('/create-qris', autentikasiApiKey, (permintaan, respon) => {
-    const amount = permintaan.body?.amount || permintaan.query?.amount;
+// Buat QRIS Dinamis (Support GET query & POST body)
+app.all('/create-qris', apiKeyAuth, (req, res) => {
+    const amount = req.body?.amount || req.query?.amount;
     if (!amount || isNaN(amount) || amount <= 0) {
-        return respon.status(400).json({ success: false, message: 'Nominal Pembayaran Tidak Valid (Gunakan param ?amount=...)' });
+        return res.status(400).json({ success: false, message: 'Nominal pembayaran tidak valid (gunakan ?amount=...)' });
     }
 
-    const qrisStatisTemplate = process.env.QRIS_STATIC;
-    if (!qrisStatisTemplate) {
-        return respon.status(500).json({ success: false, message: 'QRIS_STATIC Belum Dikonfigurasi di .env' });
+    const staticTemplate = process.env.QRIS_STATIC;
+    if (!staticTemplate) {
+        return res.status(500).json({ success: false, message: 'QRIS_STATIC belum dikonfigurasi di .env' });
     }
 
-    const kodeQRISDinamis = buatQRISDinamis(qrisStatisTemplate, amount);
-    const idUnikQRIS = Math.random().toString(36).substring(2, 10);
-    const waktuKedaluwarsa = new Date(Date.now() + DURASI_KEDALUWARSA_QRIS_MS);
+    const dynamicCode = generateDynamicQRIS(staticTemplate, amount);
+    const qrisId = Math.random().toString(36).substring(2, 10);
+    const expiresAt = new Date(Date.now() + QRIS_EXPIRY_MS);
 
-    penyimpananPenyimpanGambarQRISMap.set(idUnikQRIS, { data: kodeQRISDinamis, expiresAt: waktuKedaluwarsa });
+    qrisStore.set(qrisId, { data: dynamicCode, expiresAt });
 
-    const hostServer = permintaan.get('host');
-    const skemaProtokol = permintaan.protocol;
-    const urlGambarQRISPublic = `${skemaProtokol}://${hostServer}/qr/${idUnikQRIS}`;
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const publicUrl = `${protocol}://${host}/qr/${qrisId}`;
 
-    catatLogAktivitas('INFO', `QRIS Dinamis Dibuat Untuk Nominal: Rp ${amount}`);
+    logActivity('INFO', `QRIS Dinamis dibuat untuk nominal: Rp ${amount}`);
 
-    respon.json({
+    res.json({
         success: true,
         data: {
-            qris_url: urlGambarQRISPublic,
-            qris_code: kodeQRISDinamis,
+            qris_url: publicUrl,
+            qris_code: dynamicCode,
             amount: parseInt(amount, 10),
-            expires_at: waktuKedaluwarsa.toISOString(),
+            expires_at: expiresAt.toISOString(),
             expires_in: '5 menit'
         }
     });
 });
 
-app.get('/qr/:id', (permintaan, respon) => {
-    const dataQRIS = penyimpananPenyimpanGambarQRISMap.get(permintaan.params.id);
-    if (!dataQRIS) return respon.status(404).send('Gambar QRIS Tidak Ditemukan');
-    if (Date.now() > dataQRIS.expiresAt.getTime()) {
-        penyimpananPenyimpanGambarQRISMap.delete(permintaan.params.id);
-        return respon.status(410).send('Gambar QRIS Sudah Kedaluwarsa');
+// Render QR Code Image Redirect
+app.get('/qr/:id', (req, res) => {
+    const qris = qrisStore.get(req.params.id);
+    if (!qris) return res.status(404).send('Gambar QRIS tidak ditemukan');
+    if (Date.now() > qris.expiresAt.getTime()) {
+        qrisStore.delete(req.params.id);
+        return res.status(410).send('Gambar QRIS sudah kedaluwarsa');
     }
-    const urlLayananQRCodeServer = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(dataQRIS.data)}`;
-    respon.redirect(302, urlLayananQRCodeServer);
+    const qrServerUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qris.data)}`;
+    res.redirect(302, qrServerUrl);
 });
 
-app.get('/transactions', autentikasiApiKey, async (permintaan, respon) => {
-    let headersGojek = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
+// Ambil Riwayat Transaksi
+app.get('/transactions', apiKeyAuth, async (req, res) => {
+    let headers = await sessionManager.getValidHeaders(req.headers['user-agent']);
 
-    if (!headersGojek && process.env.GOPAY_EMAIL && process.env.GOPAY_PASSWORD) {
-        catatLogAktivitas('INFO', 'Sesi tidak ditemukan, memicu Auto-Login via Email...');
+    if (!headers && process.env.GOPAY_EMAIL && process.env.GOPAY_PASSWORD) {
+        logActivity('INFO', 'Sesi tidak ditemukan, memicu auto-login...');
         await autoLoginGojek();
-        headersGojek = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
+        headers = await sessionManager.getValidHeaders(req.headers['user-agent']);
     }
 
-    if (!headersGojek) return respon.status(400).json({ success: false, error: 'Sesi GoPay Wajib Disediakan. Silakan jalankan `node login.js` di terminal.' });
+    if (!headers) return res.status(400).json({ success: false, error: 'Sesi GoPay belum ada. Jalankan `node login.js` di terminal.' });
 
     try {
-        const fetchMutasi = async (headersReq) => {
-            const merchantId = permintaan.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || MERCHANT_ID_DEFAULT;
-            const waktuSekarang = new Date();
-            const waktuMulaiISO = permintaan.query.startTime ? new Date(parseInt(permintaan.query.startTime) * 1000).toISOString() : new Date(waktuSekarang.getTime() - 3 * 24 * 3600 * 1000).toISOString();
-            const waktuSelesaiISO = permintaan.query.endTime ? new Date(parseInt(permintaan.query.endTime) * 1000).toISOString() : waktuSekarang.toISOString();
+        const fetchTransactions = async (activeHeaders) => {
+            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+            const now = new Date();
+            const startTimeISO = req.query.startTime ? new Date(parseInt(req.query.startTime) * 1000).toISOString() : new Date(now.getTime() - 3 * 24 * 3600 * 1000).toISOString();
+            const endTimeISO = req.query.endTime ? new Date(parseInt(req.query.endTime) * 1000).toISOString() : now.toISOString();
 
-            return await axios.get(URL_API_GOJEK_TRANSAKSI, {
-                headers: headersReq,
+            return await axios.get(GOJEK_TRANSACTIONS_URL, {
+                headers: activeHeaders,
                 params: {
                     from: 0,
-                    size: parseInt(permintaan.query.pageSize || '20', 10),
+                    size: parseInt(req.query.pageSize || '20', 10),
                     statuses: 'SETTLEMENT,CAPTURE,REFUND,PARTIAL_REFUND',
                     payment_types: 'QRIS,GOPAY,OFFLINE_CREDIT_CARD,OFFLINE_DEBIT_CARD,CREDIT_CARD',
-                    start_time: waktuMulaiISO,
-                    end_time: waktuSelesaiISO,
+                    start_time: startTimeISO,
+                    end_time: endTimeISO,
                     merchant_ids: merchantId
                 },
                 timeout: 10000
             });
         };
 
-        let responAPI;
+        let response;
         try {
-            responAPI = await fetchMutasi(headersGojek);
-        } catch (errorPertama) {
-            if (errorPertama.response && errorPertama.response.status === 401) {
-                catatLogAktivitas('WARNING', 'Sesi Kedaluwarsa (401). Memulai Auto-Refresh Sesi...');
-                const sessionRefreshed = await sessionManager.refreshSession();
-                if (sessionRefreshed) {
-                    const newHeaders = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
-                    responAPI = await fetchMutasi(newHeaders);
+            response = await fetchTransactions(headers);
+        } catch (firstErr) {
+            if (firstErr.response && firstErr.response.status === 401) {
+                logActivity('WARNING', 'Sesi expired (401). Memulai auto-refresh...');
+                const refreshed = await sessionManager.refreshSession();
+                if (refreshed) {
+                    const newHeaders = await sessionManager.getValidHeaders(req.headers['user-agent']);
+                    response = await fetchTransactions(newHeaders);
                 } else {
-                    throw errorPertama;
+                    throw firstErr;
                 }
             } else {
-                throw errorPertama;
+                throw firstErr;
             }
         }
 
-        const daftarTransaksiMentah = responAPI.data?.transactions || responAPI.data?.data?.transactions || [];
-        const daftarTransaksiTerformat = daftarTransaksiMentah.map(transaksi => ({
-            amount: parseInt(transaksi.gross_amount || transaksi.real_gross_amount || 0, 10),
-            status: transaksi.transaction_status ? transaksi.transaction_status.toLowerCase() : 'success',
-            time: transaksi.transaction_time || transaksi.settlement_time,
-            issuer: transaksi.qris_provider_aspi_issuer || 'GoPay / Bank',
-            order_id: transaksi.order_id,
-            transaction_id: transaksi.id
+        const rawTransactions = response.data?.transactions || response.data?.data?.transactions || [];
+        const formattedTransactions = rawTransactions.map(tx => ({
+            amount: parseInt(tx.gross_amount || tx.real_gross_amount || 0, 10),
+            status: tx.transaction_status ? tx.transaction_status.toLowerCase() : 'success',
+            time: tx.transaction_time || tx.settlement_time,
+            issuer: tx.qris_provider_aspi_issuer || 'GoPay / Bank',
+            order_id: tx.order_id,
+            transaction_id: tx.id
         }));
 
-        respon.json({
+        res.json({
             success: true,
-            total_amount: String(daftarTransaksiTerformat.reduce((total, transaksi) => total + transaksi.amount, 0)),
-            data: { transactions: daftarTransaksiTerformat }
+            total_amount: String(formattedTransactions.reduce((total, tx) => total + tx.amount, 0)),
+            data: { transactions: formattedTransactions }
         });
-    } catch (gagalAmbilTransaksi) {
-        respon.status(500).json({ success: false, error: gagalAmbilTransaksi.message });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
-app.get('/transactions/all', autentikasiApiKey, async (permintaan, respon) => {
-    const tanggalSekarang = new Date();
-    const awalBulanIniUnix = Math.floor(new Date(tanggalSekarang.getFullYear(), tanggalSekarang.getMonth(), 1).getTime() / 1000);
-    permintaan.query.startTime = awalBulanIniUnix;
-    permintaan.query.pageSize = 100;
-    return app._router.handle({ ...permintaan, url: '/transactions', method: 'GET' }, respon);
+// Shortcut Semua Transaksi Bulan Ini
+app.get('/transactions/all', apiKeyAuth, async (req, res) => {
+    const now = new Date();
+    const startOfMonthUnix = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000);
+    req.query.startTime = startOfMonthUnix;
+    req.query.pageSize = 100;
+    return app._router.handle({ ...req, url: '/transactions', method: 'GET' }, res);
 });
 
-app.all('/check-payment', autentikasiApiKey, async (permintaan, respon) => {
-    const amount = permintaan.body?.amount || permintaan.query?.amount;
-    const startTime = permintaan.body?.startTime || permintaan.query?.startTime || permintaan.query?.start_time;
-    let headersGojek = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
+// Cek Pembayaran Masuk (Support GET query & POST body)
+app.all('/check-payment', apiKeyAuth, async (req, res) => {
+    const amount = req.body?.amount || req.query?.amount;
+    const startTime = req.body?.startTime || req.query?.startTime || req.query?.start_time;
+    let headers = await sessionManager.getValidHeaders(req.headers['user-agent']);
 
-    if (!headersGojek && process.env.GOPAY_EMAIL && process.env.GOPAY_PASSWORD) {
-        catatLogAktivitas('INFO', 'Sesi tidak ditemukan, memicu Auto-Login...');
+    if (!headers && process.env.GOPAY_EMAIL && process.env.GOPAY_PASSWORD) {
+        logActivity('INFO', 'Sesi tidak ditemukan, memicu auto-login...');
         await autoLoginGojek();
-        headersGojek = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
+        headers = await sessionManager.getValidHeaders(req.headers['user-agent']);
     }
 
-    if (!headersGojek) {
-        return respon.status(400).json({
+    if (!headers) {
+        return res.status(400).json({
             success: false,
-            message: 'Sesi GoPay Wajib Disediakan. Silakan jalankan `node login.js` di terminal.'
+            message: 'Sesi GoPay belum ada. Jalankan `node login.js` di terminal.'
         });
     }
 
     try {
-        const fetchCheckPayment = async (headersReq) => {
-            const merchantId = permintaan.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || MERCHANT_ID_DEFAULT;
-            const waktuSekarang = new Date();
-            const waktuMulaiISO = startTime ? new Date(startTime).toISOString() : new Date(waktuSekarang.getTime() - 24 * 60 * 60 * 1000).toISOString();
-            const waktuSelesaiISO = waktuSekarang.toISOString();
+        const fetchCheckPayment = async (activeHeaders) => {
+            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+            const now = new Date();
+            const startTimeISO = startTime ? new Date(startTime).toISOString() : new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+            const endTimeISO = now.toISOString();
 
-            return await axios.get(URL_API_GOJEK_TRANSAKSI, {
-                headers: headersReq,
+            return await axios.get(GOJEK_TRANSACTIONS_URL, {
+                headers: activeHeaders,
                 params: {
                     from: 0,
                     size: 20,
                     statuses: 'SETTLEMENT,CAPTURE,REFUND,PARTIAL_REFUND',
                     payment_types: 'QRIS,GOPAY,OFFLINE_CREDIT_CARD,OFFLINE_DEBIT_CARD,CREDIT_CARD',
-                    start_time: waktuMulaiISO,
-                    end_time: waktuSelesaiISO,
+                    start_time: startTimeISO,
+                    end_time: endTimeISO,
                     merchant_ids: merchantId
                 },
                 timeout: 10000
             });
         };
 
-        let responAPI;
+        let response;
         try {
-            responAPI = await fetchCheckPayment(headersGojek);
-        } catch (errorPertama) {
-            if (errorPertama.response && errorPertama.response.status === 401) {
-                catatLogAktivitas('WARNING', 'Sesi Kedaluwarsa (401) di /check-payment. Memulai Auto-Refresh...');
-                const sessionRefreshed = await sessionManager.refreshSession();
-                if (sessionRefreshed) {
-                    const newHeaders = await sessionManager.getValidHeaders(permintaan.headers['user-agent']);
-                    responAPI = await fetchCheckPayment(newHeaders);
+            response = await fetchCheckPayment(headers);
+        } catch (firstErr) {
+            if (firstErr.response && firstErr.response.status === 401) {
+                logActivity('WARNING', 'Sesi expired (401) di /check-payment. Memulai auto-refresh...');
+                const refreshed = await sessionManager.refreshSession();
+                if (refreshed) {
+                    const newHeaders = await sessionManager.getValidHeaders(req.headers['user-agent']);
+                    response = await fetchCheckPayment(newHeaders);
                 } else {
-                    throw errorPertama;
+                    throw firstErr;
                 }
             } else {
-                throw errorPertama;
+                throw firstErr;
             }
         }
 
-        const daftarTransaksi = responAPI.data?.transactions || responAPI.data?.data?.transactions || responAPI.data?.data || [];
-        const nominalTargetAngka = parseInt(amount, 10);
-        const timestampFilterMulaiMs = startTime ? new Date(startTime).getTime() : 0;
+        const rawTransactions = response.data?.transactions || response.data?.data?.transactions || response.data?.data || [];
+        const targetAmount = parseInt(amount, 10);
+        const filterStartTimeMs = startTime ? new Date(startTime).getTime() : 0;
 
-        let transaksiCocok = null;
+        let matchedTransaction = null;
 
-        for (const objekTransaksi of daftarTransaksi) {
-            const nominalTransaksi = parseInt(objekTransaksi.gross_amount || objekTransaksi.real_gross_amount || objekTransaksi.amount?.value || objekTransaksi.amount || 0, 10);
-            const timestampTransaksiMs = new Date(objekTransaksi.transaction_time || objekTransaksi.created_at || objekTransaksi.settlement_time || 0).getTime();
-            const idTransaksi = objekTransaksi.id || objekTransaksi.order_id || objekTransaksi.wallstreet_transaction_id;
+        for (const tx of rawTransactions) {
+            const txAmount = parseInt(tx.gross_amount || tx.real_gross_amount || tx.amount?.value || tx.amount || 0, 10);
+            const txTimestamp = new Date(tx.transaction_time || tx.created_at || tx.settlement_time || 0).getTime();
+            const txId = tx.id || tx.order_id || tx.wallstreet_transaction_id;
 
-            if (nominalTransaksi === nominalTargetAngka && timestampTransaksiMs >= timestampFilterMulaiMs) {
-                if (!daftarTransaksiYangSudahDiklaimMap.has(idTransaksi)) {
-                    daftarTransaksiYangSudahDiklaimMap.set(idTransaksi, Date.now());
-                    transaksiCocok = {
-                        transaction_id: idTransaksi,
-                        order_id: objekTransaksi.order_id,
-                        amount: nominalTransaksi,
-                        payer_issuer: objekTransaksi.qris_provider_aspi_issuer || 'GoPay / Bank',
-                        payment_type: objekTransaksi.payment_type || objekTransaksi.transaction_source || 'GOPAY_INSTORE',
-                        transaction_time: objekTransaksi.transaction_time || objekTransaksi.settlement_time
+            if (txAmount === targetAmount && txTimestamp >= filterStartTimeMs) {
+                if (!claimedTransactions.has(txId)) {
+                    claimedTransactions.set(txId, Date.now());
+                    matchedTransaction = {
+                        transaction_id: txId,
+                        order_id: tx.order_id,
+                        amount: txAmount,
+                        payer_issuer: tx.qris_provider_aspi_issuer || 'GoPay / Bank',
+                        payment_type: tx.payment_type || tx.transaction_source || 'GOPAY_INSTORE',
+                        transaction_time: tx.transaction_time || tx.settlement_time
                     };
                     break;
                 }
             }
         }
 
-        if (transaksiCocok) {
-            catatLogAktivitas('SUCCESS', `Pembayaran Terverifikasi Lunas Untuk Nominal Rp ${nominalTargetAngka}`, transaksiCocok);
-            return respon.json({
+        if (matchedTransaction) {
+            logActivity('SUCCESS', `Pembayaran terverifikasi lunas untuk nominal Rp ${targetAmount}`, matchedTransaction);
+            return res.json({
                 success: true,
                 paid: true,
-                transaction: transaksiCocok
+                transaction: matchedTransaction
             });
         } else {
-            return respon.json({
+            return res.json({
                 success: true,
                 paid: false,
-                message: 'Pembayaran Belum Ditemukan Atau Sudah Pernah Diklaim'
+                message: 'Pembayaran belum ditemukan atau sudah pernah diklaim'
             });
         }
 
-    } catch (gagalPeriksaPembayaran) {
-        const detailPesanGagal = gagalPeriksaPembayaran.response ? `HTTP ${gagalPeriksaPembayaran.response.status}: ${JSON.stringify(gagalPeriksaPembayaran.response.data)}` : gagalPeriksaPembayaran.message;
-        catatLogAktivitas('ERROR', `Gagal Memeriksa Pembayaran: ${detailPesanGagal}`);
-        return respon.status(500).json({
+    } catch (err) {
+        const errorDetail = err.response ? `HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}` : err.message;
+        logActivity('ERROR', `Gagal periksa pembayaran: ${errorDetail}`);
+        return res.status(500).json({
             success: false,
-            message: 'Gagal Mengambil Data Transaksi Dari API GoPay',
-            error: detailPesanGagal
+            message: 'Gagal mengambil data transaksi dari API GoPay',
+            error: errorDetail
         });
     }
 });
 
-app.get('/api/logs', autentikasiApiKey, (permintaan, respon) => {
-    respon.json({ success: true, logs: daftarLogAktivitasMemoriArray });
+// Logs Endpoint
+app.get('/api/logs', apiKeyAuth, (req, res) => {
+    res.json({ success: true, logs: activityLogs });
 });
 
-app.listen(PORT_SERVER_DEFAULT, () => {
-    catatLogAktivitas('SYSTEM', `GoPay Partner Gateway Berjalan pada Port ${PORT_SERVER_DEFAULT}`);
+app.listen(PORT, () => {
+    logActivity('SYSTEM', `GoPay Partner Gateway berjalan pada port ${PORT}`);
 });
