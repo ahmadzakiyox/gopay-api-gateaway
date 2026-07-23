@@ -37,37 +37,28 @@ API Gateway berkinerja tinggi, ringan, dan mandiri (*stateless*) untuk otomatisa
 ## 📡 Alur Kerja Sistem (Workflow Diagram)
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Merchant as Pemilik Toko (CLI Terminal)
-    actor Pelanggan as Pelanggan / Buyer
-    participant Toko as Toko Utama (Web/App)
-    participant Gateway as GoPay Gateway Server
-    participant GoBiz as API GoBiz / GoJek
+flowchart TD
+    classDef main fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
+    classDef highlight fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+    classDef success fill:#15803d,stroke:#4ade80,stroke-width:2px,color:#fff;
 
-    Note over Merchant, Gateway: TAHAP 1: KALI PERTAMA SETUP (CUKUP 1 KALI)
-    Merchant->>Gateway: Jalankan `node login.js`
-    Gateway->>Merchant: Minta nomor HP & Kode OTP di terminal
-    Gateway->>GoBiz: POST /goid/login/request & POST /goid/token
-    GoBiz-->>Gateway: Access Token & Refresh Token
-    Gateway->>Gateway: Simpan ke `.GOPAY_SESI_JANGAN_DIHAPUS.json`
-
-    Note over Toko, GoBiz: TAHAP 2: PROSES TRANSAKSI & AUTO-REFRESH
-    Toko->>Gateway: POST /create-qris { amount: 25000 }
-    Gateway-->>Toko: QRIS Dinamis 25.000 (CRC16 In-Memory)
-    Pelanggan->>GoBiz: Scan & Bayar via GoPay / QRIS M-Banking
-
-    loop Tiap 10 Detik (Hanya Saat Checkout Aktif)
-        Toko->>Gateway: POST /check-payment { amount: 25000 }
-        alt Token Mendekati Kadaluwarsa / Expired
-            Gateway->>GoBiz: POST /goid/token (grant_type: refresh_token)
-            GoBiz-->>Gateway: Token Baru
-            Gateway->>Gateway: Update file `.GOPAY_SESI_JANGAN_DIHAPUS.json`
-        end
-        Gateway->>GoBiz: GET /merchant-analytics/v2/merchants/transactions
-        GoBiz-->>Gateway: Mutasi Masuk
-        Gateway-->>Toko: Status Lunas: {"paid": true}
+    subgraph Setup["1️⃣ Tahap Login Terminal (Cukup 1 Kali)"]
+        A["👤 Terminal CLI<br/>`node login.js`"] -->|Input No. HP & OTP| B["🔑 GoBiz Auth API"]
+        B -->|Simpan Token & Cookie| C[("💾 File Sesi<br/>`.GOPAY_SESI_JANGAN_DIHAPUS.json`")]
     end
+
+    subgraph Core["2️⃣ Gateway Transaksi & Auto-Refresh"]
+        D["🛒 Website Toko / Web Checkout"] -->|POST /create-qris & /check-payment| E["🚀 GoPay Gateway Server"]
+        E -->|Baca Sesi & Cek Expiry| F{"Apakah Token Expired?"}
+        F -- "Ya (Kadaluwarsa)" --> G["🔄 SessionManager Auto-Refresh"]
+        G -->|Update Sesi In-Place| C
+        F -- "Tidak (Masih Aktif)" --> H["🌐 GoJek Merchant Analytics API"]
+        H -->|Hasil Status Lunas| D
+    end
+
+    class A,D main;
+    class B,E,F,G highlight;
+    class C,H success;
 ```
 
 ---
