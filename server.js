@@ -11,7 +11,7 @@ const MAX_LOGS = 100;
 const CLAIMED_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 jam
 const QRIS_EXPIRY_MS = 5 * 60 * 1000; // 5 menit
 const GOJEK_TRANSACTIONS_URL = 'https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions';
-const DEFAULT_MERCHANT_ID = 'G020877062';
+
 
 const claimedTransactions = new Map();
 const activityLogs = [];
@@ -319,7 +319,7 @@ app.get('/token-status', apiKeyAuth, async (req, res) => {
         return res.json({ success: false, data: { token_status: 'invalid', message: 'Sesi belum dikonfigurasi. Jalankan `node login.js` di terminal.' } });
     }
     try {
-        const merchantId = process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+        const merchantId = process.env.GOPAY_MERCHANT_ID || '';
         const now = new Date();
         const oneHourAgo = new Date(now.getTime() - 3600 * 1000).toISOString();
 
@@ -405,7 +405,7 @@ app.get('/transactions', apiKeyAuth, async (req, res) => {
 
     try {
         const fetchTransactions = async (activeHeaders) => {
-            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || '';
             const now = new Date();
             const startTimeISO = req.query.startTime ? new Date(parseInt(req.query.startTime) * 1000).toISOString() : new Date(now.getTime() - 3 * 24 * 3600 * 1000).toISOString();
             const endTimeISO = req.query.endTime ? new Date(parseInt(req.query.endTime) * 1000).toISOString() : now.toISOString();
@@ -493,7 +493,7 @@ app.all('/check-payment', apiKeyAuth, async (req, res) => {
 
     try {
         const fetchCheckPayment = async (activeHeaders) => {
-            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || DEFAULT_MERCHANT_ID;
+            const merchantId = req.headers['x-gopay-merchant-id'] || process.env.GOPAY_MERCHANT_ID || '';
             const now = new Date();
             const startTimeISO = startTime ? new Date(startTime).toISOString() : new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
             const endTimeISO = now.toISOString();
