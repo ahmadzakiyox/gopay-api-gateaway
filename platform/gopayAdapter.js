@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-const AUTH_URL = 'https://portal.gofoodmerchant.co.id/goid';
+const AUTH_URL = 'https://api.gobiz.co.id/goid';
 const OTP_URL = `${AUTH_URL}/login/request`;
 const TOKEN_URL = `${AUTH_URL}/token`;
 const PROFILE_URL = 'https://api.gobiz.co.id/goresto/v5/public/users/config';
