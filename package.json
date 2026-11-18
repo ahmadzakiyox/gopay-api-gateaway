@@ -5,7 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "web:install": "npm --prefix web install",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "platform:install": "npm --prefix platform install",
+    "platform:dev": "npm --prefix platform run dev"
   },
   "dependencies": {
     "axios": "^1.7.2",
