@@ -11,6 +11,7 @@ const { z } = require('zod');
 const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
+const { requestOtp, verifyOtp } = require('./gopayAdapter');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
@@ -103,8 +104,33 @@ app.put('/api/qris', requireUser, async (req, res) => { const parsed = qrisSchem
 app.post('/api/qris/preview', requireUser, async (req, res) => { const parsed = z.object({ amount: z.coerce.number().int().positive().max(999999999) }).safeParse(req.body); if (!parsed.success) return fail(res, 400, 'Nominal tidak valid'); const [rows] = await pool.execute('SELECT static_qris FROM qris_configs WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'QRIS belum disimpan'); try { res.json({ success: true, qris: generateDynamicQRIS(rows[0].static_qris, parsed.data.amount) }); } catch (error) { return fail(res, 400, error.message); } });
 app.delete('/api/qris', requireUser, async (req, res) => { await pool.execute('DELETE FROM qris_configs WHERE user_id=?', [req.user.id]); await audit(req.user.id, 'qris_deleted'); res.json({ success: true }); });
 
-app.post('/api/gopay/connect/start', requireUser, async (req, res) => { const parsed = z.object({ phoneNumber: z.string().trim().min(8).max(20) }).safeParse(req.body); if (!parsed.success) return fail(res, 400, 'Nomor GoPay tidak valid'); await pool.execute('INSERT INTO gopay_accounts (user_id, phone_number, status) VALUES (?, ?, \'otp_pending\') ON DUPLICATE KEY UPDATE phone_number=VALUES(phone_number), status=\'otp_pending\', last_error=NULL', [req.user.id, parsed.data.phoneNumber]); await audit(req.user.id, 'gopay_otp_requested'); res.status(501).json({ success: false, error: 'GoPay OTP adapter belum diaktifkan', code: 'GOPAY_ADAPTER_REQUIRED' }); });
-app.post('/api/gopay/connect/verify', requireUser, async (_req, res) => fail(res, 501, 'GoPay OTP adapter belum diaktifkan'));
+app.post('/api/gopay/connect/start', requireUser, async (req, res) => {
+  const parsed = z.object({ phoneNumber: z.string().trim().min(8).max(20) }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'Nomor GoPay tidak valid');
+  try {
+    const result = await requestOtp(req.user.id, parsed.data.phoneNumber);
+    await pool.execute('INSERT INTO gopay_accounts (user_id, phone_number, status) VALUES (?, ?, \'otp_pending\') ON DUPLICATE KEY UPDATE phone_number=VALUES(phone_number), status=\'otp_pending\', last_error=NULL', [req.user.id, parsed.data.phoneNumber]);
+    await audit(req.user.id, 'gopay_otp_requested');
+    return res.json({ success: true, status: 'otp_pending', expiresIn: result.expiresIn });
+  } catch (error) {
+    await pool.execute('INSERT INTO gopay_accounts (user_id, phone_number, status, last_error) VALUES (?, ?, \'error\', ?) ON DUPLICATE KEY UPDATE phone_number=VALUES(phone_number), status=\'error\', last_error=VALUES(last_error)', [req.user.id, parsed.data.phoneNumber, error.message.slice(0, 500)]);
+    return fail(res, 502, error.message);
+  }
+});
+
+app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
+  const parsed = z.object({ otp: z.string().trim().regex(/^\\d{4,8}$/) }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'OTP harus berupa 4 sampai 8 digit');
+  try {
+    const result = await verifyOtp(req.user.id, parsed.data.otp);
+    await pool.execute('UPDATE gopay_accounts SET phone_number=?, merchant_id=?, encrypted_session=?, status=\'connected\', last_error=NULL WHERE user_id=?', [result.phoneNumber, result.merchantId, encrypt(JSON.stringify(result.session)), req.user.id]);
+    await audit(req.user.id, 'gopay_connected', { merchantId: result.merchantId });
+    return res.json({ success: true, status: 'connected', merchantId: result.merchantId, phoneNumber: result.phoneNumber });
+  } catch (error) {
+    await pool.execute('UPDATE gopay_accounts SET status=\'error\', last_error=? WHERE user_id=?', [error.message.slice(0, 500), req.user.id]);
+    return fail(res, 502, error.message);
+  }
+});
 
 app.get('/api/activity', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT action, metadata, created_at FROM activity_logs WHERE user_id=? ORDER BY id DESC LIMIT 50', [req.user.id]); res.json({ success: true, items: rows }); });
 
