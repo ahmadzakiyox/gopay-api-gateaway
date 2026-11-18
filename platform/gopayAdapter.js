@@ -1,11 +1,12 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-const OTP_URL = 'https://api.gobiz.co.id/goid/login/request';
-const TOKEN_URL = 'https://api.gobiz.co.id/goid/token';
+const AUTH_URL = 'https://portal.gofoodmerchant.co.id/goid';
+const OTP_URL = `${AUTH_URL}/login/request`;
+const TOKEN_URL = `${AUTH_URL}/token`;
 const PROFILE_URL = 'https://api.gobiz.co.id/goresto/v5/public/users/config';
 const CLIENT_ID = 'go-biz-web-new';
-const APP_VERSION = 'platform-v3.111.0-1708bc9a';
+const APP_VERSION = process.env.GOPAY_APP_VERSION || 'platform-v3.125.0-e1923971';
 const OTP_TTL_MS = 10 * 60 * 1000;
 
 const pending = new Map();
@@ -32,7 +33,7 @@ function headers(deviceId, accessToken) {
     'x-appversion': APP_VERSION,
     'x-deviceos': 'Web',
     'x-phonemake': 'Windows 10 64-bit',
-    'x-phonemodel': 'Chrome 150 on Windows 10 64-bit',
+    'x-phonemodel': 'Chrome 148 on Windows 10 64-bit',
     'x-platform': 'Web',
     'x-uniqueid': deviceId,
     'x-user-locale': 'en-GB',

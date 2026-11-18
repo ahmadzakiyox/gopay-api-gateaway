@@ -113,8 +113,7 @@ app.post('/api/gopay/connect/start', requireUser, async (req, res) => {
     await audit(req.user.id, 'gopay_otp_requested');
     return res.json({ success: true, status: 'otp_pending', expiresIn: result.expiresIn });
   } catch (error) {
-    await pool.execute('INSERT INTO gopay_accounts (user_id, phone_number, status, last_error) VALUES (?, ?, \'error\', ?) ON DUPLICATE KEY UPDATE phone_number=VALUES(phone_number), status=\'error\', last_error=VALUES(last_error)', [req.user.id, parsed.data.phoneNumber, error.message.slice(0, 500)]);
-    return fail(res, 502, error.message);
+    return fail(res, 502, 'GoBiz menolak request OTP. Perbarui aplikasi GoPay Merchant atau coba lagi nanti.');
   }
 });
 
