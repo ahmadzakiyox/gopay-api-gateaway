@@ -9,6 +9,12 @@ const axios = require('axios');
 const mysql = require('mysql2/promise');
 const { z } = require('zod');
 const { createRemoteJWKSet, jwtVerify } = require('jose');
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  headers.set('accept-encoding', 'identity');
+  return originalFetch(url, { ...options, headers });
+};
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
 
