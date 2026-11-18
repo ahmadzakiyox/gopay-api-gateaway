@@ -8,13 +8,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const mysql = require('mysql2/promise');
 const { z } = require('zod');
-const { createRemoteJWKSet, jwtVerify } = require('jose');
-const originalFetch = globalThis.fetch;
-globalThis.fetch = (url, options = {}) => {
-  const headers = new Headers(options.headers || {});
-  headers.set('accept-encoding', 'identity');
-  return originalFetch(url, { ...options, headers });
-};
+const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
 
@@ -24,7 +18,13 @@ const webOrigin = process.env.WEB_ORIGIN || 'http://localhost:5173';
 const isProduction = process.env.NODE_ENV === 'production';
 const pool = mysql.createPool({ host: process.env.MYSQL_HOST, port: Number(process.env.MYSQL_PORT || 3306), user: process.env.MYSQL_USER, password: process.env.MYSQL_PASSWORD, database: process.env.MYSQL_DATABASE, connectionLimit: 10 });
 const oauthStates = new Map();
-const telegramJwks = process.env.TELEGRAM_CLIENT_ID ? createRemoteJWKSet(new URL('https://oauth.telegram.org/.well-known/jwks.json')) : null;
+let telegramJwksPromise;
+async function telegramKeyResolver(header, token) {
+  if (!telegramJwksPromise) {
+    telegramJwksPromise = axios.get('https://oauth.telegram.org/.well-known/jwks.json', { responseType: 'json', decompress: true, headers: { 'Accept-Encoding': 'identity' } }).then((response) => createLocalJWKSet(response.data));
+  }
+  return (await telegramJwksPromise)(header, token);
+}
 
 app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -71,7 +71,7 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
   oauthStates.delete(req.query.state);
   try {
     const token = await axios.post('https://oauth.telegram.org/token', new URLSearchParams({ grant_type: 'authorization_code', code: req.query.code, client_id: process.env.TELEGRAM_CLIENT_ID, client_secret: process.env.TELEGRAM_CLIENT_SECRET, redirect_uri: process.env.TELEGRAM_REDIRECT_URI, code_verifier: state.verifier }).toString(), { headers: { 'content-type': 'application/x-www-form-urlencoded' } });
-    const claims = await jwtVerify(token.data.id_token, telegramJwks, { issuer: 'https://oauth.telegram.org', audience: process.env.TELEGRAM_CLIENT_ID });
+    const claims = await jwtVerify(token.data.id_token, telegramKeyResolver, { issuer: 'https://oauth.telegram.org', audience: process.env.TELEGRAM_CLIENT_ID });
     const payload = claims.payload;
     const telegramId = payload.id || payload.sub;
     if (!telegramId || payload.iss !== 'https://oauth.telegram.org') throw new Error('Invalid Telegram identity');
