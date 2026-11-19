@@ -15,9 +15,10 @@ function SimulateCard({ onDone }) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [pollError, setPollError] = useState('');
   const create = async (e) => {
     e.preventDefault();
-    setBusy(true); setError(''); setPayment(null); setSecondsLeft(0);
+    setBusy(true); setError(''); setPollError(''); setPayment(null); setSecondsLeft(0);
     try {
       const result = await request('/api/v1/payments', { method: 'POST', body: JSON.stringify({ orderId: `sim-${Date.now()}`, amount: Number(amount) }) });
       setPayment(result.payment);
@@ -27,16 +28,32 @@ function SimulateCard({ onDone }) {
   };
   useEffect(() => {
     if (!payment || payment.status !== 'pending' || secondsLeft <= 0) return undefined;
+    let active = true;
+    const poll = async () => {
+      try {
+        const result = await request(`/api/payments/${payment.trxId}`);
+        if (!active) return;
+        setPollError('');
+        setPayment(result.payment);
+      } catch {
+        if (active) setPollError('Status pembayaran belum bisa diperiksa. Mencoba lagi otomatis…');
+      }
+    };
     const tick = setInterval(() => {
-      setSecondsLeft((s) => s - 1);
-      request(`/api/payments/${payment.trxId}`).then((result) => setPayment(result.payment)).catch(() => {});
+      setSecondsLeft((s) => Math.max(0, s - 5));
+      poll();
     }, 5000);
-    return () => clearInterval(tick);
+    return () => { active = false; clearInterval(tick); };
   }, [payment && payment.trxId, payment && payment.status, secondsLeft > 0]);
-  const statusLabel = !payment ? '' : payment.status === 'paid' ? 'LUNAS' : payment.status === 'expired' ? 'KEDALUWARSA' : `Menunggu pembayaran… ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const statusLabel = !payment ? '' : payment.status === 'paid' ? 'PEMBAYARAN BERHASIL' : payment.status === 'expired' ? 'KEDALUWARSA' : `Menunggu pembayaran… ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
   return <section className="panel qris-panel" id="simulate"><div className="panel-head"><div><p className="eyebrow">04 / SIMULATION</p><h3>Simulasi transaksi</h3></div><QrCode size={20} /></div><p className="muted">Buat QRIS dinamis dari nominal ini, lalu bayar lewat aplikasi GoPay. Status dicek otomatis selama 5 menit.</p>
     {!payment && <form onSubmit={create}><label htmlFor="sim-amount">Nominal (Rp)</label><input id="sim-amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="10000" inputMode="numeric" /><div className="form-actions"><button className="primary" disabled={busy || !Number(amount)}>Create QRIS <QrCode size={16} /></button></div></form>}
-    {payment && <div className="sim-result"><div className="sim-status"><span className={`pill ${payment.status === 'paid' ? 'connected' : ''}`}>{statusLabel}</span><div><b>Rp{payment.payableAmount.toLocaleString('id-ID')}</b><small>{`Nominal dasar Rp${payment.baseAmount.toLocaleString('id-ID')} + penanda ${payment.surcharge}`}</small></div></div><img className="sim-qr" alt="QRIS dinamis" src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payment.qris)}`} /><code className="sim-payload">{payment.qris}</code><button className="secondary full" onClick={() => { setPayment(null); setAmount(''); setSecondsLeft(0); }}>Buat transaksi baru</button></div>}
+    {payment && <div className={`sim-result ${payment.status === 'paid' ? 'sim-success' : ''}`}>
+      <div className="sim-status"><span className={`pill ${payment.status === 'paid' ? 'connected' : ''}`}>{statusLabel}</span><div><b>Rp{payment.payableAmount.toLocaleString('id-ID')}</b><small>{`Nominal dasar Rp${payment.baseAmount.toLocaleString('id-ID')} + penanda ${payment.surcharge}`}</small></div></div>
+      {payment.status === 'paid' ? <div className="payment-success" role="status" aria-live="polite"><Check size={34} /><div><strong>Pembayaran berhasil</strong><span>Pembayaran GoPay sudah terkonfirmasi.</span></div></div> : payment.status === 'pending' ? <><img className="sim-qr" alt="QRIS dinamis" src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payment.qris)}`} /><code className="sim-payload">{payment.qris}</code></> : <p className="muted">Waktu pembayaran habis. Buat transaksi baru untuk mencoba lagi.</p>}
+      {pollError && payment.status === 'pending' && <p className="muted warning" role="status">{pollError}</p>}
+      <button className="secondary full" onClick={() => { setPayment(null); setAmount(''); setSecondsLeft(0); setPollError(''); }}>Buat transaksi baru</button>
+    </div>}
     {error && <p className="muted warning">{error}</p>}
   </section>;
 }
