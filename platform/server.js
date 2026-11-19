@@ -118,8 +118,8 @@ app.post('/api/gopay/connect/start', requireUser, async (req, res) => {
 });
 
 app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
-  const parsed = z.object({ otp: z.string().trim().regex(/^\\d{4,8}$/) }).safeParse(req.body);
-  if (!parsed.success) return fail(res, 400, 'OTP harus berupa 4 sampai 8 digit');
+  const parsed = z.object({ otp: z.string() }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'Kirim kode OTP sebagai teks');
   try {
     const result = await verifyOtp(req.user.id, parsed.data.otp);
     await pool.execute('UPDATE gopay_accounts SET phone_number=?, merchant_id=?, encrypted_session=?, status=\'connected\', last_error=NULL WHERE user_id=?', [result.phoneNumber, result.merchantId, encrypt(JSON.stringify(result.session)), req.user.id]);

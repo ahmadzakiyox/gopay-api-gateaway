@@ -69,7 +69,7 @@ async function verifyOtp(userId, otp) {
   expire(userId);
   const item = pending.get(userId);
   if (!item) throw new Error('OTP tidak ditemukan atau sudah kedaluwarsa');
-  if (!/^\d{4,8}$/.test(String(otp || ''))) throw new Error('OTP harus berupa 4 sampai 8 digit');
+
   try {
     const response = await axios.post(TOKEN_URL, { client_id: CLIENT_ID, grant_type: 'otp', data: { otp: String(otp), otp_token: item.otpToken } }, { headers: headers(item.deviceId), timeout: 15000 });
     const data = responseData(response);
