@@ -14,7 +14,7 @@ const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
 const { requestOtp, verifyOtp, listTransactions } = require('./gopayAdapter');
-const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment } = require('./paymentLogic');
+const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
@@ -77,7 +77,8 @@ async function pollMerchantPayments(userId) {
     for (const transaction of transactions.map(normalizeTransaction).filter(Boolean)) {
       const [payments] = await connection.execute("SELECT id, order_id, base_amount, surcharge, payable_amount, status, created_at, expires_at FROM payments WHERE user_id=? AND status='pending' AND payable_amount=? AND created_at <= ? AND expires_at >= ? ORDER BY created_at ASC LIMIT 2 FOR UPDATE", [userId, transaction.amount, transaction.transactionTime, transaction.transactionTime]);
       if (payments.length !== 1 || !transactionMatchesPayment(transaction, payments[0])) continue;
-      const [updated] = await connection.execute("UPDATE payments SET status='paid', provider_transaction_id=?, provider_order_id=?, provider_payment_type=?, provider_issuer=?, provider_transaction_time=?, paid_at=? WHERE id=? AND user_id=? AND status='pending'", [transaction.transactionId, transaction.orderId, transaction.paymentType, transaction.issuer, transaction.transactionTime, transaction.transactionTime, payments[0].id, userId]);
+      const settledAt = toMysqlDateTime(transaction.transactionTime);
+      const [updated] = await connection.execute("UPDATE payments SET status='paid', provider_transaction_id=?, provider_order_id=?, provider_payment_type=?, provider_issuer=?, provider_transaction_time=?, paid_at=? WHERE id=? AND user_id=? AND status='pending'", [transaction.transactionId, transaction.orderId, transaction.paymentType, transaction.issuer, settledAt, settledAt, payments[0].id, userId]);
       if (updated.affectedRows === 1) {
         settled += 1;
         await audit(userId, 'payment_paid', { trxId: payments[0].id, orderId: payments[0].order_id, amount: Number(payments[0].payable_amount), providerTransactionId: transaction.transactionId });
@@ -180,7 +181,8 @@ async function pollMerchantPayments(userId) {
     for (const transaction of normalized) {
       const [payments] = await connection.execute("SELECT id, order_id, base_amount, surcharge, payable_amount, status, created_at, expires_at FROM payments WHERE user_id=? AND status='pending' AND payable_amount=? AND created_at <= ? AND expires_at >= ? ORDER BY created_at ASC LIMIT 2 FOR UPDATE", [userId, transaction.amount, transaction.transactionTime, transaction.transactionTime]);
       if (payments.length !== 1 || !transactionMatchesPayment(transaction, payments[0])) continue;
-      const [updated] = await connection.execute("UPDATE payments SET status='paid', provider_transaction_id=?, provider_order_id=?, provider_payment_type=?, provider_issuer=?, provider_transaction_time=?, paid_at=? WHERE id=? AND user_id=? AND status='pending'", [transaction.transactionId, transaction.orderId, transaction.paymentType, transaction.issuer, transaction.transactionTime, transaction.transactionTime, payments[0].id, userId]);
+      const settledAt = toMysqlDateTime(transaction.transactionTime);
+      const [updated] = await connection.execute("UPDATE payments SET status='paid', provider_transaction_id=?, provider_order_id=?, provider_payment_type=?, provider_issuer=?, provider_transaction_time=?, paid_at=? WHERE id=? AND user_id=? AND status='pending'", [transaction.transactionId, transaction.orderId, transaction.paymentType, transaction.issuer, settledAt, settledAt, payments[0].id, userId]);
       if (updated.affectedRows === 1) {
         settled += 1;
         await audit(userId, 'payment_paid', { trxId: payments[0].id, orderId: payments[0].order_id, amount: Number(payments[0].payable_amount), providerTransactionId: transaction.transactionId });

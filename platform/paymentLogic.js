@@ -50,4 +50,10 @@ function transactionMatchesPayment(tx, payment, clockSkewMs = 60_000, settlement
   return Number.isFinite(txTime) && Number.isFinite(createdAt) && Number.isFinite(expiresAt) && txTime >= createdAt - clockSkewMs && txTime <= expiresAt + settlementGraceMs;
 }
 
-module.exports = { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment };
+function toMysqlDateTime(value) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) throw new TypeError('Waktu transaksi GoPay tidak valid');
+  return new Date(timestamp).toISOString().slice(0, 23).replace('T', ' ');
+}
+
+module.exports = { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime };

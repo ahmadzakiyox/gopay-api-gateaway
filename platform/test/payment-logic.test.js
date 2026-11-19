@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment } = require('../paymentLogic');
+const { allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('../paymentLogic');
 
 test('allocates the first unused surcharge above the base amount', () => {
   assert.deepEqual(allocateUniqueAmount(10000, new Set([10035]), 35, 99), {
@@ -51,4 +51,9 @@ test('matches exact amount and payment-window timestamps only', () => {
   assert.equal(transactionMatchesPayment({ ...tx, amount: 10036 }, payment), false);
   assert.equal(transactionMatchesPayment({ ...tx, transactionTime: '2025-12-31T23:58:59Z' }, payment), false);
   assert.equal(transactionMatchesPayment({ ...tx, transactionTime: '2026-01-01T00:17:01Z' }, payment), false);
+});
+
+test('formats provider settlement timestamps for MySQL DATETIME', () => {
+  assert.equal(toMysqlDateTime('2026-11-19T14:12:24.000Z'), '2026-11-19 14:12:24.000');
+  assert.equal(toMysqlDateTime('2026-11-19T21:12:24+07:00'), '2026-11-19 14:12:24.000');
 });
