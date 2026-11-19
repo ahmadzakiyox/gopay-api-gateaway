@@ -116,7 +116,12 @@ const apiKeyAuth = async (req, res, next) => {
   try {
     const bearer = req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
     const supplied = req.get('x-api-key') || bearer;
-    if (!supplied || !/^gpg_[A-Za-z0-9_-]{43}$/.test(supplied)) return fail(res, 401, 'API key tidak valid');
+    if (!supplied) {
+      const user = await userFromRequest(req);
+      if (user) { req.apiUserId = user.id; return next(); }
+      return fail(res, 401, 'API key tidak valid');
+    }
+    if (!/^gpg_[A-Za-z0-9_-]{43}$/.test(supplied)) return fail(res, 401, 'API key tidak valid');
     const keyHash = crypto.createHash('sha256').update(supplied).digest('hex');
     const [rows] = await pool.execute('SELECT user_id, encrypted_key FROM api_keys WHERE key_hash=? LIMIT 1', [keyHash]);
     if (!rows[0]) return fail(res, 401, 'API key tidak valid');
@@ -358,6 +363,17 @@ async function expirePayments() {
 const paymentExpiryTimer = setInterval(() => expirePayments().catch((error) => console.error('Payment expiry sweep failed:', error.message)), 30000);
 paymentExpiryTimer.unref();
 
+
+app.get('/api/payments/:trxId', requireUser, async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.trxId)) return fail(res, 400, 'trxId tidak valid');
+  try {
+    const payment = await getPaymentForUser(req.user.id, req.params.trxId);
+    if (!payment) return fail(res, 404, 'Payment tidak ditemukan');
+  res.json({ success: true, payment: safePaymentStatus(payment) });
+  } catch (error) {
+    return fail(res, 502, 'Gagal mengecek status transaksi GoPay');
+  }
+});
 
 app.put('/api/qris', requireUser, async (req, res) => { const parsed = qrisSchema.safeParse(req.body); if (!parsed.success) return fail(res, 400, 'QRIS tidak valid atau terlalu pendek'); let staticQris; try { staticQris = validateQris(parsed.data.staticQris); } catch (error) { return fail(res, 400, error.message); } await pool.execute('INSERT INTO qris_configs (user_id, static_qris, is_valid) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE static_qris=VALUES(static_qris), is_valid=1', [req.user.id, staticQris]); await audit(req.user.id, 'qris_updated'); res.json({ success: true }); });
 app.post('/api/qris/preview', requireUser, async (req, res) => { const parsed = z.object({ amount: z.coerce.number().int().positive().max(999999999) }).safeParse(req.body); if (!parsed.success) return fail(res, 400, 'Nominal tidak valid'); const [rows] = await pool.execute('SELECT static_qris FROM qris_configs WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'QRIS belum disimpan'); try { res.json({ success: true, qris: generateDynamicQRIS(rows[0].static_qris, parsed.data.amount) }); } catch (error) { return fail(res, 400, error.message); } });
