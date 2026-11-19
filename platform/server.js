@@ -91,6 +91,7 @@ async function pollMerchantPayments(userId) {
     connection.release();
   }
 }
+const oauthStates = new Map();
 let telegramJwksPromise;
 async function telegramKeyResolver(header, token) {
   if (!telegramJwksPromise) {
