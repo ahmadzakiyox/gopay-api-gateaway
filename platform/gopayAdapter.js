@@ -80,11 +80,66 @@ async function verifyOtp(userId, otp) {
     const merchantId = merchant?.id || profile.merchant_id || data.merchant_id;
     if (!merchantId) throw new Error('Merchant GoPay tidak ditemukan');
     pending.delete(userId);
-    return { phoneNumber: `+62${item.phone}`, merchantId: String(merchantId), session: { access_token: data.access_token, refresh_token: data.refresh_token, device_id: item.deviceId, expires_at: Date.now() + Number(data.expires_in || 86400) * 1000 } };
+    return { phoneNumber: `+62${item.phone}`, merchantId: String(merchantId), session: { access_token: data.access_token, refresh_token: data.refresh_token, device_id: item.deviceId, phone_number: `+62${item.phone}`, expires_at: Date.now() + Number(data.expires_in || 86400) * 1000 } };
   } catch (error) {
     if (error.response?.status >= 400 && error.response?.status < 500) pending.delete(userId);
     throw new Error(error.response?.data?.message || error.message || 'Verifikasi GoPay gagal');
   }
 }
 
-module.exports = { requestOtp, verifyOtp };
+async function refreshSession(session) {
+  if (!session?.refresh_token) throw new Error('Sesi GoPay tidak memiliki refresh token');
+  const response = await axios.post(TOKEN_URL, {
+    client_id: CLIENT_ID,
+    grant_type: 'refresh_token',
+    data: { refresh_token: session.refresh_token, phone_number: String(session.phone_number || '').replace(/^\\+?62/, '').replace(/^0/, ''), country_code: '62' }
+  }, { headers: headers(session.device_id), timeout: 15000 });
+  const data = responseData(response);
+  if (!data.access_token) throw new Error('GoBiz tidak mengembalikan access token saat refresh');
+  return {
+    ...session,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || session.refresh_token,
+    expires_at: Date.now() + Number(data.expires_in || 86400) * 1000
+  };
+}
+
+async function listTransactions(session, { merchantId, startTime, endTime }) {
+  if (!merchantId) throw new Error('Merchant GoPay tidak memiliki merchant ID');
+  let activeSession = session;
+  const transactions = [];
+  for (let from = 0; from < 1000; from += 100) {
+    const fetchPage = (currentSession) => axios.get('https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions', {
+      headers: headers(currentSession.device_id, currentSession.access_token),
+      params: {
+        from,
+        size: 100,
+        statuses: 'SETTLEMENT,CAPTURE',
+        payment_types: 'QRIS',
+        start_time: startTime,
+        end_time: endTime,
+        merchant_ids: merchantId
+      },
+      timeout: 12000
+    });
+    let response;
+    try {
+      response = await fetchPage(activeSession);
+    } catch (error) {
+      if (error.response?.status !== 401) throw error;
+      activeSession = await refreshSession(activeSession);
+      response = await fetchPage(activeSession);
+    }
+    const body = response.data || {};
+    const payload = body.data || body;
+    const page = Array.isArray(body.transactions) ? body.transactions
+      : Array.isArray(payload.transactions) ? payload.transactions
+        : Array.isArray(payload) ? payload
+          : [];
+    transactions.push(...page);
+    if (page.length < 100) break;
+  }
+  return { transactions, session: activeSession };
+}
+
+module.exports = { requestOtp, verifyOtp, listTransactions, refreshSession };
