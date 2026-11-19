@@ -15,6 +15,7 @@ const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
 const { requestOtp, verifyOtp, listTransactions } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
+const { getPaymentForUser } = require('./paymentStatus');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
@@ -324,19 +325,6 @@ async function createPaymentForUser(userId, input) {
   }
 }
 
-async function getPaymentForUser(userId, trxId) {
-  const [rows] = await pool.execute('SELECT * FROM payments WHERE user_id=? AND id=? LIMIT 1', [userId, trxId]);
-  if (!rows[0]) return null;
-  if (rows[0].status === 'pending') {
-    if (new Date(rows[0].expires_at).getTime() <= Date.now()) {
-      await pool.execute("UPDATE payments SET status='expired' WHERE id=? AND user_id=? AND status='pending' AND expires_at<=NOW(3)", [trxId, userId]);
-    } else {
-      await pollMerchantPayments(userId);
-    }
-  }
-  const [fresh] = await pool.execute('SELECT * FROM payments WHERE user_id=? AND id=? LIMIT 1', [trxId, userId]);
-  return fresh[0] || null;
-}
 
 app.post('/api/v1/payments', apiKeyAuth, async (req, res) => {
   const parsed = createPaymentSchema.safeParse(req.body);
@@ -352,7 +340,7 @@ app.post('/api/v1/payments', apiKeyAuth, async (req, res) => {
 app.get('/api/v1/payments/:trxId', apiKeyAuth, async (req, res) => {
   if (!/^[0-9a-f-]{36}$/i.test(req.params.trxId)) return fail(res, 400, 'trxId tidak valid');
   try {
-    const payment = await getPaymentForUser(req.apiUserId, req.params.trxId);
+    const payment = await getPaymentForUser(pool, req.apiUserId, req.params.trxId);
     if (!payment) return fail(res, 404, 'Payment tidak ditemukan');
     return res.json({ success: true, payment: safePaymentStatus(payment) });
   } catch (error) {
@@ -370,7 +358,7 @@ paymentExpiryTimer.unref();
 app.get('/api/payments/:trxId', requireUser, async (req, res) => {
   if (!/^[0-9a-f-]{36}$/i.test(req.params.trxId)) return fail(res, 400, 'trxId tidak valid');
   try {
-    const payment = await getPaymentForUser(req.user.id, req.params.trxId);
+    const payment = await getPaymentForUser(pool, req.user.id, req.params.trxId);
     if (!payment) return fail(res, 404, 'Payment tidak ditemukan');
   res.json({ success: true, payment: safePaymentStatus(payment) });
   } catch (error) {
