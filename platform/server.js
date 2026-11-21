@@ -245,6 +245,8 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
 app.get('/api/auth/status', async (req, res) => { try { const user = await userFromRequest(req); res.json({ success: true, authenticated: Boolean(user), user: user ? { id: user.id, telegramId: user.telegram_id, username: user.username, firstName: user.first_name } : null }); } catch { fail(res, 500, 'Gagal membaca status login'); } });
 app.post('/api/auth/logout', async (req, res) => { if (req.cookies.user_session) await pool.execute('DELETE FROM web_sessions WHERE id=?', [req.cookies.user_session]); res.clearCookie('user_session'); res.json({ success: true }); });
 
+require('./transactionReports').registerTransactionReports(app, pool, requireUser);
+
 app.get('/api/dashboard', requireUser, async (req, res) => {
   const [gopay] = await pool.execute("SELECT phone_number, merchant_id, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
   const [qris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM qris_configs WHERE user_id=?', [req.user.id]);
