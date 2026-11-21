@@ -12,6 +12,6 @@ test('dashboard omits the requested heading copy and refresh control', () => {
 });
 test('dashboard analytics layout assertion is covered separately', () => {
   assert.match(source, /studio-panel analytics-panel/);
-  assert.match(source, /analytics-metrics/);
+  assert.doesNotMatch(source, /studio-metrics|analytics-metrics/);
   assert.match(source, /<Chart series=\{analytics\.series\}\/\>/);
 });

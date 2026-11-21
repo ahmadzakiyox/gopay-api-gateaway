@@ -7,7 +7,7 @@ const source = readFileSync(fileURLToPath(new URL('../src/StudioTransactionDashb
 
 test('analytics chart uses the requested concise labels', () => {
   assert.doesNotMatch(source, /Nominal transaksi sukses|Pergerakan pembayaran berdasarkan waktu diterima|Pembayaran sukses|Pilih hari pada grafik/);
-  assert.match(source, /<StatusDonut summary=\{analytics\.summary\}\/\>/);
+  assert.match(source, /<StatusDonut summary=\{analytics\.summary\} amount=\{analytics\.summary\.amount\}\/\>/);
   assert.match(source, /aria-label=\{total\?`Komposisi/);
   assert.match(source, /aria-label="Grafik nominal transaksi harian"/);
   assert.match(source, /aria-label=\{`\$\{x\.day\}, \$\{money\(x\.amount\)\}, \$\{x\.count\} transaksi`\}/);

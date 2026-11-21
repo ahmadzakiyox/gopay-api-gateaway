@@ -12,6 +12,11 @@ test('transaction status distribution calculates percentages from counts', () =>
   ]);
 });
 
+test('rounded percentages are nonnegative and sum to exactly 100', () => {
+  const result = getStatusDistribution({ paid: 7, pending: 1, expired: 0 });
+  assert.ok(result.items.every(item => item.percentage >= 0));
+  assert.equal(result.items.reduce((sum, item) => sum + item.percentage, 0), 100);
+});
 test('transaction status distribution keeps all states and zero percentages for an empty period', () => {
   const result = getStatusDistribution({ paid: 0, pending: 0, expired: 0 });
   assert.equal(result.total, 0);

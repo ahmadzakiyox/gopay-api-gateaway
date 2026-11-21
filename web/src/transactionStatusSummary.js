@@ -10,15 +10,14 @@ export function getStatusDistribution(summary) {
     count: Number(summary[status.key] || 0),
   }));
   const total = items.reduce((sum, item) => sum + item.count, 0);
-  let allocated = 0;
+  const percentages = items.map((item) => total === 0 ? 0 : Math.floor(item.count / total * 100));
+  let remaining = total === 0 ? 0 : 100 - percentages.reduce((sum, percentage) => sum + percentage, 0);
+  const remainderOrder = items
+    .map((item, index) => ({ index, remainder: total === 0 ? 0 : item.count / total * 100 - percentages[index] }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+  for (let i = 0; i < remaining; i += 1) percentages[remainderOrder[i].index] += 1;
   return {
     total,
-    items: items.map((item, index) => {
-      const percentage = total === 0 ? 0 : index === items.length - 1
-        ? 100 - allocated
-        : Math.round(item.count / total * 100);
-      allocated += percentage;
-      return { ...item, percentage };
-    }),
+    items: items.map((item, index) => ({ ...item, percentage: percentages[index] })),
   };
 }
