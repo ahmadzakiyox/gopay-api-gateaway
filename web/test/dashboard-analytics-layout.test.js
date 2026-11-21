@@ -13,7 +13,8 @@ test('date filters, summary metrics, and chart share one analytics panel', () =>
   const analyticsPanel = source.slice(panelStart, activityStart);
   assert.match(analyticsPanel, /analytics-toolbar/);
   assert.match(analyticsPanel, /studio-custom-range/);
-  assert.match(analyticsPanel, /studio-metrics analytics-metrics/);
+  assert.match(analyticsPanel, /analytics-metrics/);
+  assert.match(analyticsPanel, /<StatusDonut summary=\{analytics\.summary\}\/\>/);
   assert.match(analyticsPanel, /<Chart series=\{analytics\.series\}\/\>/);
   assert.doesNotMatch(source, /<section className="studio-metrics"/);
 });
