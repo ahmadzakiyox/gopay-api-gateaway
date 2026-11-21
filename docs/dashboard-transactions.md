@@ -41,6 +41,6 @@ Checklist staging:
 - Pendukung: https://docs.stripe.com/payments/analytics — hierarchy KPI.
 - https://docs.stripe.com/reports/activity-breakdown — penelusuran ringkasan ke transaksi.
 
-Reference lock: putih/netral, hijau existing #1E5A43 untuk aksi dan grafik, Inter, pemisah tipis, tanpa gradient atau shadow dekoratif. Grafik dan strip metrik berada dalam satu bagian; log berada di bawah. Status selalu memiliki teks. Angka rata kanan/tabular.
+Reference lock: adapt Studio Admin Finance (https://studio-admin.arhamkhnz.com/dashboard/finance) structure: admin sidebar, page header, concise date toolbar, ordered metric strip, chart panel, and separate activity table. Preserve only relevant transaction facts; exclude irrelevant finance widgets and fake comparative metrics. Retain GoPay brand green #285846, compact typography, thin neutral dividers, explicit statuses, and responsive mobile transaction rows.
 
 Verifikasi otomatis: `node --test platform/test/*.test.js`. Tes scope membandingkan backend dan handler frontend dengan baseline commit sebelum pemisahan; perubahan hanya penambahan registrasi laporan dan presentasi halaman.
