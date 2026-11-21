@@ -8,5 +8,6 @@ const source = readFileSync(dashboardPath, 'utf8');
 
 test('dashboard omits the requested heading copy and refresh control', () => {
   assert.doesNotMatch(source, /WORKSPACE \/ DASHBOARD|<h1>Ringkasan pembayaran<\/h1>|Pantau performa pembayaran dan aktivitas transaksi\./);
-  assert.doesNotMatch(source, /studio-icon-button|aria-label="Perbarui data"|<RefreshCw/);
+  assert.doesNotMatch(source, /studio-icon-button|aria-label="Perbarui data"|<RefreshCw|studio-updated|studio-page-header/);
+  assert.doesNotMatch(source, /studio-dashboard \.studio-page-header|studio-header-actions|studio-updated|studio-icon-button/);
 });
