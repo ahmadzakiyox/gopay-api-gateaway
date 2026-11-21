@@ -54,6 +54,8 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-legend{display:flex;align-items:center;gap:7px;font-size:10px;color:#747b84}
 .studio-legend i{width:8px;height:8px;border-radius:2px}
 .studio-chart-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:13px 0 8px}
+.studio-chart-title{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.studio-chart-title .studio-section-label{font-size:10px;letter-spacing:.11em;color:#878d97}
 .studio-chart-heading h2{font-size:15px;letter-spacing:.11em;color:#20252a;margin:0;font-weight:600}
 .studio-chart-heading p{font-size:10px;color:#818791;margin:5px 0 0}
 .chart-readout{display:flex;align-items:baseline;gap:9px;text-align:right;color:#7c838c;font-size:10px;white-space:nowrap}
