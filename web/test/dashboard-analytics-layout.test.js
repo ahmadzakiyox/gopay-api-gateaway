@@ -15,7 +15,7 @@ test('date filters, status chart, and paid amount share one analytics panel', ()
   assert.match(analyticsPanel, /studio-custom-range/);
   assert.doesNotMatch(analyticsPanel, /studio-metrics|Nominal terbayar/);
   assert.doesNotMatch(analyticsPanel, /title=\{labels\[k\]\}/);
-  assert.match(analyticsPanel, /<StatusDonut summary=\{analytics\.summary\} amount=\{analytics\.summary\.amount\}\/\>/);
+  assert.match(analyticsPanel, /<StatusDonut summary=\{analytics\.summary\} amount=\{analytics\.summary\.amount\} periodText=\{periodDisplay\}\/\>/);
   assert.match(analyticsPanel, /<Chart series=\{analytics\.series\}\/\>/);
   assert.doesNotMatch(source, /<section className="studio-metrics"/);
 });
