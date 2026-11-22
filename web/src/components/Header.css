@@ -53,33 +53,7 @@
 }
 
 .workspace-nav nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.workspace-nav nav a {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.workspace-nav nav a:hover {
-  background: #f0f2f0;
-  color: var(--ink);
-}
-
-.workspace-nav nav a.active {
-  background: var(--mint);
-  color: var(--green);
+  display: none;
 }
 
 .side-bottom {
@@ -118,7 +92,7 @@
 
 /* Hamburger button */
 .hamburger-btn {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
@@ -130,6 +104,7 @@
   padding: 0;
   border-radius: 10px;
   transition: background 0.2s;
+  margin-left: auto;
 }
 
 .hamburger-btn:hover {
@@ -299,15 +274,6 @@
 
   .brand-text {
     font-size: 11px;
-  }
-
-  .workspace-nav nav {
-    display: none;
-  }
-
-  .hamburger-btn {
-    display: flex;
-    margin-left: auto;
   }
 
   .side-bottom {

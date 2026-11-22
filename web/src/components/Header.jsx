@@ -33,16 +33,6 @@ export function Header({ onLogout, managementMode = false }) {
             <b>Pay</b>
           </span>
         </a>
-        <nav className="nav-desktop">
-          <a href="/dashboard" className={!managementMode ? 'nav-link active' : 'nav-link'}>
-            <Activity size={17} />
-            Dashboard
-          </a>
-          <a href="/gpy-manager" className={managementMode ? 'nav-link active' : 'nav-link'}>
-            <WalletCards size={17} />
-            GoPay Management
-          </a>
-        </nav>
         <button ref={buttonRef} className={`hamburger-btn ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>
           <div className="hamburger-icon">
             <span className="bar bar1"></span>
