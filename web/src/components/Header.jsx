@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Activity, WalletCards, Menu, X } from 'lucide-react';
+import { LogOut, Activity, WalletCards } from 'lucide-react';
 import './Header.css';
 
 export function Header({ onLogout, managementMode = false }) {
@@ -44,7 +44,11 @@ export function Header({ onLogout, managementMode = false }) {
           </a>
         </nav>
         <button ref={buttonRef} className={`hamburger-btn ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>
-          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          <div className="hamburger-icon">
+            <span className="bar bar1"></span>
+            <span className="bar bar2"></span>
+            <span className="bar bar3"></span>
+          </div>
         </button>
         <div className="side-bottom">
           <button className="logout" onClick={onLogout}>
