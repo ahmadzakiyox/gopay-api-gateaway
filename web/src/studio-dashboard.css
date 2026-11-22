@@ -1,5 +1,5 @@
 /* Studio Admin Finance reference, adapted to GoPay transaction monitoring only. */
-.studio-shell{min-height:100vh;background:#f8f9fb;color:#17191d;font-family:Inter,ui-sans-serif,system-ui,sans-serif;--studio-border:#e8eaee;--studio-muted:#737983;--studio-brand:#285846}
+.studio-shell{min-height:100vh;background:#f8f9fb;color:#17191d;font-family:Inter,ui-sans-serif,system-ui,sans-serif;--studio-border:#e8eaee;--studio-muted:#737983;--studio-brand:#285846;margin-left:220px}@media(max-width:768px){.studio-shell{margin-left:0;margin-top:72px}}
 .studio-shell .workspace-nav{width:248px;flex:0 0 248px;background:#fff;border-right:1px solid var(--studio-border);padding:22px 16px}
 .studio-shell .brand{margin:0 0 38px 4px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;font-size:12px}
 .studio-shell .brand-symbol{width:32px;height:32px;border-radius:8px;background:#285846;color:white;font-weight:700}
