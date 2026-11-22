@@ -103,15 +103,21 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-status-select{height:35px;display:flex;align-items:center;gap:6px;padding:0 8px;border:1px solid var(--studio-border);border-radius:5px;color:#727983}
 .studio-status-select select{border:0;outline:0;background:transparent;color:#555c65;font:inherit;font-size:10px}
 .studio-table-wrap{overflow:auto}
-.studio-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px;min-width:610px}
-.studio-table th{padding:10px 9px;background:#f8f9fa;border-block:1px solid var(--studio-border);color:#727983;font-size:9px;font-weight:550}
-.studio-table td{padding:11px 9px;border-bottom:1px solid #eff0f2;color:#565d66;white-space:nowrap}
-.studio-table tbody tr{cursor:pointer}
-.studio-table tbody tr:hover{background:#fafbfa}
-.studio-table .transaction-link{font-size:10px;color:#2a3037}
-.studio-table code{font-size:9px;margin-top:4px;color:#8b9098}
+.studio-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px;min-width:610px;table-layout:fixed}
+.studio-table th{padding:10px 9px;background:#f8f9fa;border-block:1px solid var(--studio-border);color:#727983;font-size:9px;font-weight:550;text-align:left;word-break:break-word}
+.studio-table td{padding:11px 9px;border-bottom:1px solid #eff0f2;color:#565d66;overflow:hidden;text-overflow:ellipsis}
+.studio-table th:nth-child(1){width:35%}
+.studio-table th:nth-child(2){width:25%}
+.studio-table th:nth-child(3){width:20%}
+.studio-table th:nth-child(4){width:20%;text-align:right}
+.studio-table td:nth-child(4){text-align:right}
+.studio-table tbody tr{cursor:pointer;transition:background .12s}
+.studio-table tbody tr:hover{background:#f5f7f6;box-shadow:inset 3px 0 0 #80998c}
+.studio-table .transaction-link{font-size:10px;color:#2a3037;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-table .transaction-link:hover{color:#285846}
+.studio-table code{font-size:9px;margin-top:3px;color:#8b9098;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .studio-table .payment-badge{font-size:9px;padding:4px 6px}
-.studio-table .amount-cell{font-size:10px;color:#252a30}
+.studio-table .amount-cell{font-size:10px;color:#252a30;font-variant-numeric:tabular-nums;font-weight:500}
 .studio-pagination{min-height:40px;display:flex;align-items:center;justify-content:space-between;padding-top:8px;color:#7c828a;font-size:10px}
 .studio-pagination>div{display:flex;gap:5px}
 .studio-pagination button{height:29px;width:29px;border-radius:5px}
