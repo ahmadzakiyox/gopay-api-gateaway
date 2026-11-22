@@ -28,9 +28,7 @@ export function Header({ onLogout, managementMode = false }) {
         <a className="brand" href="/dashboard">
           <img src="/logo.png" alt="Alternate Pay Logo" className="brand-logo" />
           <span className="brand-text">
-            Alternate
-            <br />
-            <b>Pay</b>
+            Alternate <b>Pay</b>
           </span>
         </a>
         <button ref={buttonRef} className={`hamburger-btn ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>

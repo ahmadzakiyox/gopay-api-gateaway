@@ -39,15 +39,18 @@
 }
 
 .brand-text {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.3;
   letter-spacing: 0.02em;
   color: var(--green);
+  display: flex;
+  align-items: baseline;
+  gap: 0;
 }
 
 .brand-text b {
-  display: block;
   font-weight: 700;
   font-size: 14px;
 }
