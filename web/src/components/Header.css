@@ -1,0 +1,178 @@
+/* Header Navigation */
+.workspace-nav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 24px 18px;
+  border-right: 1px solid var(--line);
+  background: var(--paper);
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.brand:hover {
+  background: #f0f2f0;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+
+.brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--green);
+}
+
+.brand-text b {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.workspace-nav nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.workspace-nav nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.workspace-nav nav a:hover {
+  background: #f0f2f0;
+  color: var(--ink);
+}
+
+.workspace-nav nav a.active {
+  background: var(--mint);
+  color: var(--green);
+}
+
+.side-bottom {
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.logout {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.logout:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--mint);
+}
+
+.logout:active {
+  transform: scale(0.98);
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .workspace-nav {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    gap: 20px;
+    padding: 18px 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    position: static;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .workspace-nav nav {
+    flex-direction: row;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .side-bottom {
+    margin-left: auto;
+    gap: 10px;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .workspace-nav {
+    gap: 15px;
+    padding: 15px 16px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-text {
+    font-size: 12px;
+  }
+
+  .workspace-nav nav a {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .logout {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}
