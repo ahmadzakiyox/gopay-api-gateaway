@@ -121,55 +121,79 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
-  border-radius: 8px;
-  transition: background 0.2s;
   -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  border-radius: 10px;
+  transition: background 0.2s;
 }
 
 .hamburger-btn:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
+.hamburger-btn:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Hamburger icon bars */
 .hamburger-icon {
+  position: relative;
+  width: 22px;
+  height: 16px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 5px;
-  width: 24px;
-  height: 24px;
+  transition-duration: 0.5s;
 }
 
 .hamburger-icon .bar {
   width: 100%;
-  height: 2px;
-  background: #1a1a1a;
-  border-radius: 1px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 2.5px;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  transition-duration: 0.5s;
   transform-origin: center;
 }
 
-.hamburger-btn.open .bar1 {
-  transform: rotate(45deg) translate(10px, 10px);
+.hamburger-icon .bar1,
+.hamburger-icon .bar3 {
+  width: 70%;
+  align-self: flex-start;
+}
+
+.hamburger-btn.open .hamburger-icon {
+  transition-duration: 0.5s;
+  transform: rotate(180deg);
 }
 
 .hamburger-btn.open .bar2 {
-  opacity: 0;
-  transform: translateX(-10px);
+  transform: scaleX(0);
+  transition-duration: 0.5s;
+}
+
+.hamburger-btn.open .bar1 {
+  width: 100%;
+  transform: translateY(7.5px) rotate(45deg);
+  transition-duration: 0.5s;
 }
 
 .hamburger-btn.open .bar3 {
-  transform: rotate(-45deg) translate(7px, -7px);
+  width: 100%;
+  transform: translateY(-7.5px) rotate(-45deg);
+  transition-duration: 0.5s;
 }
 
 /* Mobile menu backdrop */
 .mobile-menu-backdrop {
   position: fixed;
-  top: 0;
+  top: 72px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -183,24 +207,27 @@
   to { opacity: 1; }
 }
 
-/* Mobile menu */
+/* Mobile menu slide-down */
 .mobile-menu {
   display: none;
   flex-direction: column;
   position: fixed;
-  top: 60px;
+  top: 72px;
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid #e8eaee;
+  border-bottom: 1px solid #e5e5e7;
   z-index: 99;
+  
   visibility: hidden;
   opacity: 0;
   transform: translateY(-15px);
   will-change: transform, opacity, visibility;
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.3s;
 }
 
 .mobile-menu.open {
@@ -212,19 +239,19 @@
 .mobile-menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  font-size: 14px;
+  gap: 14px;
+  padding: 16px 24px;
+  font-size: 15px;
   font-weight: 500;
   color: #1a1a1a;
-  border-bottom: 1px solid #e8eaee;
+  border-bottom: 1px solid #e5e5e7;
   background: none;
-  border-style: none solid none none;
+  border-style: none;
   cursor: pointer;
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
-  text-align: left;
   text-decoration: none;
+  min-height: 52px;
 }
 
 .mobile-menu-item:last-child {
@@ -240,25 +267,17 @@
 }
 
 .mobile-menu-item svg {
-  color: #727983;
+  color: #6b6b6b;
   flex-shrink: 0;
 }
 
-.mobile-menu-item.logout-item {
-  color: #991b1b;
-}
-
-.mobile-menu-item.logout-item svg {
-  color: #991b1b;
-}
-
 /* Responsive */
-@media (max-width: 800px) {
+@media (max-width: 768px) {
   .workspace-nav {
     width: 100%;
-    height: auto;
+    height: 72px;
     flex-direction: row;
-    gap: 20px;
+    gap: 16px;
     padding: 12px 16px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
@@ -270,7 +289,7 @@
   }
 
   .brand {
-    gap: 10px;
+    gap: 8px;
   }
 
   .brand-logo {
@@ -293,10 +312,10 @@
 
   .side-bottom {
     margin-left: 0;
-    gap: 10px;
+    gap: 8px;
     padding-top: 0;
     border-top: 0;
-    display: flex;
+    display: none;
   }
 
   .logout {
@@ -304,19 +323,8 @@
     font-size: 11px;
   }
 
-  /* Mobile menu positioned below header */
   .mobile-menu {
-    position: fixed;
-    top: 56px;
-    left: 0;
-    right: 0;
-    max-height: calc(100vh - 56px);
-    overflow-y: auto;
     display: flex;
-  }
-
-  .mobile-menu-backdrop {
-    top: 56px;
   }
 }
 
