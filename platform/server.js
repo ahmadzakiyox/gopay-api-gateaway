@@ -22,7 +22,8 @@ const port = Number(process.env.PLATFORM_PORT || 3100);
 const webOrigin = process.env.WEB_ORIGIN || 'http://localhost:5173';
 const isProduction = process.env.NODE_ENV === 'production';
 const pool = mysql.createPool({ host: process.env.MYSQL_HOST, port: Number(process.env.MYSQL_PORT || 3306), user: process.env.MYSQL_USER, password: process.env.MYSQL_PASSWORD, database: process.env.MYSQL_DATABASE, connectionLimit: 10 });
-const DEFAULT_PAYMENT_EXPIRY_MS = Number(process.env.PAYMENT_EXPIRY_MS || 15 * 60 * 1000);
+const PAYMENT_EXPIRY_SECONDS = 300;
+const PAYMENT_EXPIRY_MS = PAYMENT_EXPIRY_SECONDS * 1000;
 const DEFAULT_PAYMENT_INTERVAL_MS = Number(process.env.PAYMENT_POLL_INTERVAL_MS || 8000);
 const PAYMENT_MIN_SURCHARGE = Number(process.env.PAYMENT_MIN_SURCHARGE || 35);
 const PAYMENT_MAX_SURCHARGE = Number(process.env.PAYMENT_MAX_SURCHARGE || 99);
@@ -150,7 +151,14 @@ const apiKeyAuth = async (req, res, next) => {
   }
 };
 
+function generateOrderId() {
+  return `trx_${crypto.randomBytes(6).toString('hex')}`;
+}
+
 function safePaymentStatus(row) {
+  const remainingSec = row.status === 'pending'
+    ? Math.max(0, Math.min(PAYMENT_EXPIRY_SECONDS, Math.ceil((new Date(row.expires_at).getTime() - Date.now()) / 1000)))
+    : 0;
   return {
     trxId: row.id,
     orderId: row.order_id,
@@ -159,6 +167,7 @@ function safePaymentStatus(row) {
     surcharge: Number(row.surcharge),
     payableAmount: Number(row.payable_amount),
     qris: row.status === 'pending' ? row.qris_payload : undefined,
+    expiresIn: remainingSec,
     expiresAt: row.expires_at,
     paidAt: row.paid_at,
     providerTransaction: row.status === 'paid' ? {
@@ -306,28 +315,26 @@ const pollingTimer = setInterval(() => {
 }, DEFAULT_PAYMENT_INTERVAL_MS);
 pollingTimer.unref();
 
-const requirePositiveId = z.string().trim().min(1).max(128);
 const createPaymentSchema = z.object({
-  orderId: requirePositiveId,
   amount: z.coerce.number().int().positive().max(MAX_PAYABLE_AMOUNT - PAYMENT_MIN_SURCHARGE),
-  idempotencyKey: z.string().trim().min(1).max(128).optional(),
-  expiresIn: z.coerce.number().int().min(60).max(3600).optional()
+  idempotencyKey: z.string().trim().min(1).max(128).optional()
 });
 
 async function createPaymentForUser(userId, input) {
-  const idempotencyKey = input.idempotencyKey || input.orderId;
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    const [[existing]] = await connection.execute('SELECT * FROM payments WHERE user_id=? AND (idempotency_key=? OR order_id=?) LIMIT 1 FOR UPDATE', [userId, idempotencyKey, input.orderId]);
-    if (existing) {
-      if (Number(existing.base_amount) !== input.amount) {
-        const conflict = new Error('Order/idempotency key sudah pernah dibuat dengan nominal berbeda');
-        conflict.statusCode = 409;
-        throw conflict;
+    if (input.idempotencyKey) {
+      const [[existing]] = await connection.execute('SELECT * FROM payments WHERE user_id=? AND idempotency_key=? LIMIT 1 FOR UPDATE', [userId, input.idempotencyKey]);
+      if (existing) {
+        if (Number(existing.base_amount) !== input.amount) {
+          const conflict = new Error('Idempotency key sudah pernah dibuat dengan nominal berbeda');
+          conflict.statusCode = 409;
+          throw conflict;
+        }
+        await connection.commit();
+        return { row: existing, created: false };
       }
-      await connection.commit();
-      return { row: existing, created: false };
     }
     const [[account]] = await connection.execute("SELECT merchant_id, status FROM gopay_accounts WHERE user_id=? FOR UPDATE", [userId]);
     if (!account || account.status !== 'connected' || !account.merchant_id) {
@@ -338,10 +345,11 @@ async function createPaymentForUser(userId, input) {
     const now = new Date();
     const [busyRows] = await connection.execute("SELECT payable_amount FROM payments WHERE status='pending' AND reservation_until>? FOR UPDATE", [now]);
     const allocation = allocateUniqueAmount(input.amount, new Set(busyRows.map((row) => Number(row.payable_amount))), PAYMENT_MIN_SURCHARGE, PAYMENT_MAX_SURCHARGE);
-    const ttlMs = Number(input.expiresIn || Math.floor(DEFAULT_PAYMENT_EXPIRY_MS / 1000)) * 1000;
-    const expiresAt = new Date(now.getTime() + ttlMs);
+    const expiresAt = new Date(now.getTime() + PAYMENT_EXPIRY_MS);
     const reservationUntil = new Date(expiresAt.getTime() + 36 * 60 * 60 * 1000);
     const trxId = crypto.randomUUID();
+    const orderId = generateOrderId();
+    const idempotencyKey = input.idempotencyKey || orderId;
     const [configs] = await connection.execute('SELECT static_qris FROM qris_configs WHERE user_id=? AND is_valid=1', [userId]);
     if (!configs[0]) {
       const error = new Error('Simpan QRIS GoPay Merchant terlebih dahulu');
@@ -349,7 +357,7 @@ async function createPaymentForUser(userId, input) {
       throw error;
     }
     const qrisPayload = generateDynamicQRIS(configs[0].static_qris, allocation.payableAmount);
-    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,status,expires_at,reservation_until) VALUES (?,?,?,?,?,?,?,?, 'pending',?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,expiresAt,reservationUntil]);
+    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,status,expires_at,reservation_until) VALUES (?,?,?,?,?,?,?,?, 'pending',?,?)", [trxId,userId,orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,expiresAt,reservationUntil]);
     const [[created]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=?', [trxId,userId]);
     await connection.commit();
     return { row: created, created: true };
@@ -365,7 +373,7 @@ async function createPaymentForUser(userId, input) {
 
 app.post('/api/v1/payments', apiKeyAuth, async (req, res) => {
   const parsed = createPaymentSchema.safeParse(req.body);
-  if (!parsed.success) return fail(res, 400, 'orderId, amount, idempotencyKey, atau expiresIn tidak valid');
+  if (!parsed.success) return fail(res, 400, 'amount atau idempotencyKey tidak valid');
   try {
     const result = await createPaymentForUser(req.apiUserId, parsed.data);
     return res.status(result.created ? 201 : 200).json({ success: true, payment: safePaymentStatus(result.row) });

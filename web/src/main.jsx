@@ -46,7 +46,7 @@ function SimulateCard({ onDone }) {
     e.preventDefault();
     setBusy(true); setError(''); setPollError(''); setPayment(null); setSecondsLeft(0);
     try {
-      const result = await request('/api/v1/payments', { method: 'POST', body: JSON.stringify({ orderId: `sim-${Date.now()}`, amount: Number(amount) }) });
+      const result = await request('/api/v1/payments', { method: 'POST', body: JSON.stringify({ amount: Number(amount) }) });
       setPayment(result.payment);
       setSecondsLeft(300);
       if (onDone) onDone();
@@ -471,7 +471,6 @@ function GoPayManagement() {
 function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
   const endpointUrl = `${API}/api/v1/payments`;
   const [amount, setAmount] = useState('1000');
-  const [orderId, setOrderId] = useState(() => `api-test-${Date.now()}`);
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState('');
@@ -501,26 +500,25 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
   const displayKey = apiKey || (apiKeyPrefix ? `${apiKeyPrefix}••••••••••••` : 'gpg_YOUR_API_KEY');
   const numericAmount = Number(amount) || 1000;
   const sampleRequestPayload = {
-    orderId: orderId || 'api-test-1',
-    amount: numericAmount,
-    expiresIn: 300
+    amount: numericAmount
   };
 
   const curlSample = `curl -X POST "${endpointUrl}" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: *** \\
+  -H "x-api-key: ${displayKey}" \\
   -d '${JSON.stringify(sampleRequestPayload)}'`;
 
   const sampleOutputFallback = {
     success: true,
     payment: {
       trxId: '019a0000-0000-7000-8000-000000000000',
-      orderId: sampleRequestPayload.orderId,
+      orderId: 'trx_a8f3c91d2e7b',
       status: 'pending',
       baseAmount: numericAmount,
       surcharge: 35,
       payableAmount: numericAmount + 35,
       qris: '00020101021226610014COM.GO-JEK.WWW...',
+      expiresIn: 300,
       expiresAt: new Date(Date.now() + 300000).toISOString(),
       paidAt: null
     }
@@ -546,14 +544,11 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
       }
       activeTestKeyRef.current = activeKey;
 
-      const currentOrderId = orderId.trim() || `api-test-${Date.now()}`;
       const bodyPayload = {
-        orderId: currentOrderId,
-        amount: Number(amount),
-        expiresIn: 300
+        amount: Number(amount)
       };
 
-      addLog('request', `POST /api/v1/payments (orderId: ${currentOrderId}, amount: Rp${Number(amount).toLocaleString('id-ID')})`);
+      addLog('request', `POST /api/v1/payments (amount: Rp${Number(amount).toLocaleString('id-ID')})`);
 
       const res = await fetch(`${API}/api/v1/payments`, {
         method: 'POST',
@@ -573,11 +568,11 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
       }
 
       setPayment(data.payment);
-      setSecondsLeft(300);
+      setSecondsLeft(Number(data.payment.expiresIn) || 300);
       lastLoggedStatusRef.current = data.payment.status;
       addLog(
         'pending',
-        `PENDING — Tagihan QRIS aktif sebesar Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} (dasar Rp${Number(data.payment.baseAmount).toLocaleString('id-ID')} + penanda ${data.payment.surcharge}). Menunggu pembayaran…`
+        `PENDING (${data.payment.orderId}) — Tagihan QRIS aktif sebesar Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} (dasar Rp${Number(data.payment.baseAmount).toLocaleString('id-ID')} + penanda ${data.payment.surcharge}). Berlaku 5 menit.`
       );
     } catch (err) {
       setError(err.message);
@@ -701,53 +696,30 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
       </div>
 
       <form onSubmit={runTest} className="gpy-form">
-        <div className="gpy-sandbox-inputs">
-          <div>
-            <label className="gpy-label" htmlFor="sandbox-amount">Nominal Test (Rp)</label>
-            <div className="gpy-amount-field">
-              <span>Rp</span>
-              <input
-                id="sandbox-amount"
-                value={amount ? Number(amount).toLocaleString('id-ID') : ''}
-                onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
-                placeholder="1.000"
-                inputMode="numeric"
-                autoComplete="off"
-              />
-            </div>
-            <div className="gpy-chips">
-              {quickAmounts.map((val) => (
-                <button
-                  type="button"
-                  key={val}
-                  className={`gpy-chip ${Number(amount) === val ? 'is-active' : ''}`}
-                  onClick={() => setAmount(String(val))}
-                >
-                  {val >= 1000 ? `Rp${(val / 1000).toLocaleString('id-ID')}rb` : `Rp${val}`}
-                </button>
-              ))}
-            </div>
+        <div>
+          <label className="gpy-label" htmlFor="sandbox-amount">Nominal Test (Rp)</label>
+          <div className="gpy-amount-field">
+            <span>Rp</span>
+            <input
+              id="sandbox-amount"
+              value={amount ? Number(amount).toLocaleString('id-ID') : ''}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
+              placeholder="1.000"
+              inputMode="numeric"
+              autoComplete="off"
+            />
           </div>
-
-          <div>
-            <label className="gpy-label" htmlFor="sandbox-order-id">Order ID</label>
-            <div className="gpy-orderid-row">
-              <input
-                id="sandbox-order-id"
-                className="gpy-input"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                placeholder="api-test-123"
-              />
+          <div className="gpy-chips">
+            {quickAmounts.map((val) => (
               <button
                 type="button"
-                className="gpy-btn gpy-btn-secondary"
-                onClick={() => setOrderId(`api-test-${Date.now()}`)}
-                title="Generate Order ID baru"
+                key={val}
+                className={`gpy-chip ${Number(amount) === val ? 'is-active' : ''}`}
+                onClick={() => setAmount(String(val))}
               >
-                <RefreshCw size={13} />
+                {val >= 1000 ? `Rp${(val / 1000).toLocaleString('id-ID')}rb` : `Rp${val}`}
               </button>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -848,7 +820,6 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
               type="button"
               className="gpy-btn gpy-btn-secondary gpy-btn-block"
               onClick={() => {
-                setOrderId(`api-test-${Date.now()}`);
                 setPayment(null);
                 setSecondsLeft(0);
               }}
