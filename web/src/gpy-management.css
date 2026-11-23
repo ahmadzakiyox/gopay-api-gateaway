@@ -191,6 +191,11 @@
   font-size: 11px;
 }
 
+.gpy-status-val strong.gpy-status-active {
+  color: #1e5a43;
+  font-weight: 700;
+}
+
 .gpy-pill {
   font-family: 'DM Mono', monospace;
   font-size: 9px;

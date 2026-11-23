@@ -14,7 +14,7 @@ async function request(path, options = {}) { const response = await fetch(`${API
 
 function Login() { const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const login = async () => { setLoading(true); setError(''); try { const data = await request('/api/auth/telegram/start'); window.location.href = data.url; } catch (e) { setError(e.message); setLoading(false); } }; return <div className="page-shell"><LoginHeader /><main className="login-shell"><div className="login-mark"><span>AP</span><span>ALTERNATE PAY</span></div><div className="login-copy"><p className="eyebrow">PAYMENT GATEWAY</p><h1>Payment operations,<br /><em>without the busywork.</em></h1><p className="lede">Kelola koneksi GoPay, QRIS dinamis, dan API integrasi dari satu workspace yang jelas.</p><button className="primary" onClick={login} disabled={loading}>{loading ? 'Membuka Telegram…' : 'Login dengan Telegram'} <Link2 size={17} /></button>{error && <p className="error" role="alert">{error}</p>}<p className="legal">Dengan melanjutkan, kamu menyetujui penggunaan layanan sesuai ketentuan yang berlaku.</p></div></main><Footer /></div> ; }
 
-function Row({ icon: Icon, label, value, status }) {
+function Row({ icon: Icon, label, value, status, valueClass }) {
   return (
     <div className="gpy-status-row">
       <div className="gpy-status-left">
@@ -22,7 +22,7 @@ function Row({ icon: Icon, label, value, status }) {
         <span>{label}</span>
       </div>
       <div className="gpy-status-val">
-        <strong>{value}</strong>
+        <strong className={valueClass || ''}>{value}</strong>
         {status && (
           <span className={`gpy-pill ${status === 'connected' ? 'connected' : ''}`}>
             {status === 'connected' ? 'Connected' : status}
@@ -255,13 +255,18 @@ function GoPayManagement() {
                 <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
               )}
               {data.gopay.owner_name && (
-                <Row icon={User} label="Pemilik" value={data.gopay.owner_name} />
+                <Row icon={User} label="Owner" value={data.gopay.owner_name} />
               )}
               {data.gopay.merchant_id && (
                 <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
               )}
-              <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} status={data.gopay.status} />
-              <Row icon={ShieldCheck} label="Session" value={data.gopay.status === 'connected' ? 'Token aktif' : 'Belum terhubung'} />
+              <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
+              <Row
+                icon={ShieldCheck}
+                label="Session"
+                value={data.gopay.status === 'connected' ? 'Active' : 'Belum terhubung'}
+                valueClass={data.gopay.status === 'connected' ? 'gpy-status-active' : ''}
+              />
               {data.gopay.status !== 'connected' && !otpSent && (
                 <form onSubmit={startGoPay} className="gpy-form">
                   <label className="gpy-label" htmlFor="phone">Nomor GoPay/GoBiz</label>
