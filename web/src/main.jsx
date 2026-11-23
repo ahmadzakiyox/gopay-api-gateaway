@@ -237,22 +237,8 @@ function GoPayManagement() {
   return (
     <div className="page-shell">
       <div className="app-shell studio-shell gpy-management-shell">
-        <Header management onLogout={logout} />
+        <Header management onLogout={logout} user={data.user} />
         <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
-          <header className="gpy-header">
-            <div>
-              <h1>GoPay Management</h1>
-              <p>Kelola integrasi akun merchant GoPay, API key, dan QRIS statis.</p>
-            </div>
-            <div className="gpy-profile">
-              <span className="gpy-avatar">{(data.user.first_name || 'G').slice(0, 1).toUpperCase()}</span>
-              <div className="gpy-profile-info">
-                <b>{data.user.username ? `@${data.user.username}` : 'Telegram user'}</b>
-                <small>Personal workspace</small>
-              </div>
-            </div>
-          </header>
-
           {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
           {error && <div className="gpy-error">{error}</div>}
 
@@ -265,7 +251,6 @@ function GoPayManagement() {
                 </div>
                 <Smartphone size={18} />
               </div>
-              <p className="gpy-desc">Hubungkan akun GoPay/GoBiz untuk aktivasi QRIS dinamis.</p>
               <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} status={data.gopay.status} />
               <Row icon={ShieldCheck} label="Session" value={data.gopay.status === 'connected' ? 'Token aktif' : 'Belum terhubung'} />
               {data.gopay.status !== 'connected' && !otpSent && (
@@ -291,7 +276,6 @@ function GoPayManagement() {
                   <RefreshCw size={14} /> Reconnect GoPay
                 </button>
               )}
-              <p className="gpy-muted-text">OTP hanya diproses backend dan tidak disimpan di browser.</p>
             </section>
 
             <section className="gpy-panel" id="api-key">
@@ -326,11 +310,9 @@ function GoPayManagement() {
             <div className="gpy-panel-head">
               <div>
                 <p className="gpy-section-label">03 / QRIS CONFIGURATION</p>
-                <h3>QRIS statis GoPay</h3>
               </div>
               <QrCode size={18} />
             </div>
-            <p className="gpy-desc">Simpan QRIS merchant kamu. Nominal dinamis akan diproses server menggunakan format EMVCo.</p>
             <form onSubmit={saveQris} className="gpy-form">
               <label className="gpy-label" htmlFor="qris">QRIS string</label>
               <textarea className="gpy-textarea" id="qris" value={qris} onChange={(e) => setQris(e.target.value)} placeholder="Tempel QRIS statis kamu di sini…" spellCheck="false" />

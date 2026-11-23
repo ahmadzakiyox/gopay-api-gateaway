@@ -2,10 +2,27 @@ import { useState, useRef, useEffect } from 'react';
 import { LogOut, Activity, WalletCards } from 'lucide-react';
 import './Header.css';
 
-export function Header({ onLogout, managementMode = false }) {
+export function Header({ onLogout, managementMode = false, user = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState(user);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (user) {
+      setProfile(user);
+      return;
+    }
+    // Fetch user info if not passed directly
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.user) {
+          setProfile(data.user);
+        }
+      })
+      .catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -21,6 +38,9 @@ export function Header({ onLogout, managementMode = false }) {
     setMenuOpen(false);
     await onLogout();
   };
+
+  const avatarLetter = (profile?.first_name || profile?.username || 'U').slice(0, 1).toUpperCase();
+  const displayName = profile?.username ? `@${profile.username}` : (profile?.first_name || 'Personal workspace');
 
   return (
     <>
@@ -39,6 +59,13 @@ export function Header({ onLogout, managementMode = false }) {
           </div>
         </button>
         <div className="side-bottom">
+          <div className="nav-profile-section">
+            <span className="nav-profile-avatar">{avatarLetter}</span>
+            <div className="nav-profile-info">
+              <span className="nav-profile-name">{displayName}</span>
+              <span className="nav-profile-sub">Workspace</span>
+            </div>
+          </div>
           <button className="logout" onClick={onLogout}>
             <LogOut size={16} />
             Keluar
@@ -55,6 +82,13 @@ export function Header({ onLogout, managementMode = false }) {
           <WalletCards size={20} />
           <span>GoPay Management</span>
         </a>
+        <div className="mobile-menu-profile">
+          <span className="nav-profile-avatar">{avatarLetter}</span>
+          <div className="nav-profile-info">
+            <span className="nav-profile-name">{displayName}</span>
+            <span className="nav-profile-sub">Personal workspace</span>
+          </div>
+        </div>
         <button className="mobile-menu-item logout-item" onClick={handleLogout}>
           <LogOut size={20} />
           <span>Logout</span>
