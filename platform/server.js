@@ -126,13 +126,23 @@ const apiKeyAuth = async (req, res, next) => {
     }
     if (!/^gpg_[A-Za-z0-9_-]{43}$/.test(supplied)) return fail(res, 401, 'API key tidak valid');
     const keyHash = crypto.createHash('sha256').update(supplied).digest('hex');
-    const [rows] = await pool.execute('SELECT user_id, encrypted_key FROM api_keys WHERE key_hash=? LIMIT 1', [keyHash]);
-    if (!rows[0]) return fail(res, 401, 'API key tidak valid');
-    const stored = decrypt(rows[0].encrypted_key);
+    const [rows] = await pool.execute('SELECT id, user_id, encrypted_key FROM api_keys WHERE key_hash=? LIMIT 1', [keyHash]);
+    let matched = rows[0];
+    if (!matched) {
+      const [legacyRows] = await pool.execute('SELECT id, user_id, encrypted_key FROM api_keys WHERE key_hash IS NULL AND key_prefix=?', [supplied.slice(0, 12)]);
+      for (const candidate of legacyRows) {
+        const plain = decrypt(candidate.encrypted_key);
+        const h = crypto.createHash('sha256').update(plain).digest('hex');
+        await pool.execute('UPDATE api_keys SET key_hash=? WHERE id=?', [h, candidate.id]);
+        if (h === keyHash) matched = candidate;
+      }
+    }
+    if (!matched) return fail(res, 401, 'API key tidak valid');
+    const stored = decrypt(matched.encrypted_key);
     const suppliedBuffer = Buffer.from(supplied);
     const storedBuffer = Buffer.from(stored);
     if (suppliedBuffer.length !== storedBuffer.length || !crypto.timingSafeEqual(suppliedBuffer, storedBuffer)) return fail(res, 401, 'API key tidak valid');
-    req.apiUserId = rows[0].user_id;
+    req.apiUserId = matched.user_id;
     return next();
   } catch (error) {
     console.error('API key auth:', error.message);
