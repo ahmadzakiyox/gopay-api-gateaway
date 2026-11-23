@@ -2,29 +2,28 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('../paymentLogic');
 
-test('allocates the first unused surcharge above the base amount', () => {
-  assert.deepEqual(allocateUniqueAmount(10000, new Set([10035]), 35, 99), {
-    surcharge: 36,
-    payableAmount: 10036
-  });
+test('allocates an unused random surcharge in 1-99 above the base amount', () => {
+  const result = allocateUniqueAmount(10000, new Set([10001]));
+  assert.ok(result.surcharge >= 2 && result.surcharge <= 99);
+  assert.equal(result.payableAmount, 10000 + result.surcharge);
 });
 
 test('reuses a surcharge when its payable amount is no longer reserved', () => {
-  assert.deepEqual(allocateUniqueAmount(10000, new Set([10036]), 35, 99), {
-    surcharge: 35,
-    payableAmount: 10035
+  assert.deepEqual(allocateUniqueAmount(10000, new Set([10002]), 1, 2), {
+    surcharge: 1,
+    payableAmount: 10001
   });
 });
 
 test('avoids collisions across different base amounts', () => {
-  assert.deepEqual(allocateUniqueAmount(10001, new Set([10036]), 35, 99), {
-    surcharge: 36,
-    payableAmount: 10037
+  assert.deepEqual(allocateUniqueAmount(10001, new Set([10002]), 1, 2), {
+    surcharge: 2,
+    payableAmount: 10003
   });
 });
 
 test('fails closed when every surcharge is reserved', () => {
-  assert.throws(() => allocateUniqueAmount(10000, new Set([10035, 10036]), 35, 36), {
+  assert.throws(() => allocateUniqueAmount(10000, new Set([10001, 10002]), 1, 2), {
     code: 'NO_UNIQUE_AMOUNT_AVAILABLE'
   });
 });

@@ -1,13 +1,21 @@
+const crypto = require('crypto');
+
 const MAX_PAYABLE_AMOUNT = 999999999;
 const SETTLED_STATUSES = new Set(['SETTLEMENT', 'CAPTURE']);
 
-function allocateUniqueAmount(baseAmount, reservedAmounts, minSurcharge = 35, maxSurcharge = 99) {
+function allocateUniqueAmount(baseAmount, reservedAmounts, minSurcharge = 1, maxSurcharge = 99) {
   if (!Number.isSafeInteger(baseAmount) || baseAmount <= 0) throw new TypeError('Nominal dasar harus integer positif');
   if (!Number.isInteger(minSurcharge) || !Number.isInteger(maxSurcharge) || minSurcharge < 0 || maxSurcharge < minSurcharge) throw new TypeError('Rentang nominal unik tidak valid');
   const reserved = reservedAmounts instanceof Set ? reservedAmounts : new Set(reservedAmounts || []);
+  const available = [];
   for (let surcharge = minSurcharge; surcharge <= maxSurcharge; surcharge += 1) {
     const payableAmount = baseAmount + surcharge;
-    if (payableAmount <= MAX_PAYABLE_AMOUNT && !reserved.has(payableAmount)) return { surcharge, payableAmount };
+    if (payableAmount <= MAX_PAYABLE_AMOUNT && !reserved.has(payableAmount)) {
+      available.push({ surcharge, payableAmount });
+    }
+  }
+  if (available.length > 0) {
+    return available[crypto.randomInt(available.length)];
   }
   const error = new Error('Semua nominal unik sedang digunakan');
   error.code = 'NO_UNIQUE_AMOUNT_AVAILABLE';

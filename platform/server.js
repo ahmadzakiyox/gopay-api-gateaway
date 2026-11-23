@@ -25,7 +25,7 @@ const pool = mysql.createPool({ host: process.env.MYSQL_HOST, port: Number(proce
 const PAYMENT_EXPIRY_SECONDS = 300;
 const PAYMENT_EXPIRY_MS = PAYMENT_EXPIRY_SECONDS * 1000;
 const DEFAULT_PAYMENT_INTERVAL_MS = Number(process.env.PAYMENT_POLL_INTERVAL_MS || 8000);
-const PAYMENT_MIN_SURCHARGE = Number(process.env.PAYMENT_MIN_SURCHARGE || 35);
+const PAYMENT_MIN_SURCHARGE = Number(process.env.PAYMENT_MIN_SURCHARGE || 1);
 const PAYMENT_MAX_SURCHARGE = Number(process.env.PAYMENT_MAX_SURCHARGE || 99);
 const rateLimitMap = new Map();
 const MAX_REQUESTS_PER_5MIN = 60;
@@ -340,7 +340,7 @@ async function createPaymentForUser(userId, input) {
       throw error;
     }
     const now = new Date();
-    const [busyRows] = await connection.execute("SELECT payable_amount FROM payments WHERE status='pending' AND reservation_until>? FOR UPDATE", [now]);
+    const [busyRows] = await connection.execute("SELECT payable_amount FROM payments WHERE user_id=? AND status='pending' AND reservation_until>? FOR UPDATE", [userId, now]);
     const allocation = allocateUniqueAmount(input.amount, new Set(busyRows.map((row) => Number(row.payable_amount))), PAYMENT_MIN_SURCHARGE, PAYMENT_MAX_SURCHARGE);
     const expiresAt = new Date(now.getTime() + PAYMENT_EXPIRY_MS);
     const reservationUntil = new Date(expiresAt.getTime() + 36 * 60 * 60 * 1000);
