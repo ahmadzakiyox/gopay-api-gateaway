@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Check, Clipboard, KeyRound, Link2, LogOut, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, User, Hash, WalletCards } from 'lucide-react';
+import { Activity, Check, Clipboard, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Trash2, User, WalletCards, X } from 'lucide-react';
+import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
 import './gpy-management.css';
@@ -39,6 +40,7 @@ function SimulateCard({ onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
+  const [copied, setCopied] = useState(false);
   const create = async (e) => {
     e.preventDefault();
     setBusy(true); setError(''); setPollError(''); setPayment(null); setSecondsLeft(0);
@@ -68,12 +70,18 @@ function SimulateCard({ onDone }) {
     }, 5000);
     return () => { active = false; clearInterval(tick); };
   }, [payment && payment.trxId, payment && payment.status, secondsLeft > 0]);
-  const statusLabel = !payment ? '' : payment.status === 'paid' ? 'PEMBAYARAN BERHASIL' : payment.status === 'expired' ? 'KEDALUWARSA' : `Menunggu pembayaran… ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const statusLabel = !payment ? '' : payment.status === 'paid' ? 'Lunas' : payment.status === 'expired' ? 'Kedaluwarsa' : 'Menunggu';
+  const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const progress = Math.max(0, Math.min(100, (secondsLeft / 300) * 100));
+  const quickAmounts = [10000, 25000, 50000, 100000];
+  const copyPayload = async () => {
+    try { await navigator.clipboard.writeText(payment.qris); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ }
+  };
   return (
     <section className="gpy-panel" id="simulate">
       <div className="gpy-panel-head">
         <div>
-          <p className="gpy-section-label">03 / SIMULATION</p>
+          <p className="gpy-section-label">04 / SIMULATION</p>
           <h3>Simulasi transaksi</h3>
         </div>
         <QrCode size={18} />
@@ -81,27 +89,46 @@ function SimulateCard({ onDone }) {
       <p className="gpy-desc">Buat QRIS dinamis dari nominal ini, lalu bayar lewat aplikasi GoPay. Status dicek otomatis selama 5 menit.</p>
       {!payment && (
         <form onSubmit={create} className="gpy-form">
-          <label className="gpy-label" htmlFor="sim-amount">Nominal (Rp)</label>
-          <input className="gpy-input" id="sim-amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="10000" inputMode="numeric" />
+          <label className="gpy-label" htmlFor="sim-amount">Nominal</label>
+          <div className="gpy-amount-field">
+            <span>Rp</span>
+            <input id="sim-amount" value={amount ? Number(amount).toLocaleString('id-ID') : ''} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="0" inputMode="numeric" autoComplete="off" />
+          </div>
+          <div className="gpy-chips">
+            {quickAmounts.map((value) => (
+              <button type="button" key={value} className={`gpy-chip ${Number(amount) === value ? 'is-active' : ''}`} onClick={() => setAmount(String(value))}>
+                {value >= 1000 ? `${value / 1000}rb` : value}
+              </button>
+            ))}
+          </div>
           <div className="gpy-actions-row">
-            <button className="gpy-btn gpy-btn-primary" disabled={busy || !Number(amount)}>
-              Create QRIS <QrCode size={15} />
+            <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
+              {busy ? <><Loader2 size={15} className="gpy-spin" /> Membuat QRIS…</> : <>Buat QRIS <QrCode size={15} /></>}
             </button>
           </div>
         </form>
       )}
       {payment && (
         <div className="gpy-sim-result">
-          <div className="gpy-sim-status">
-            <div className="gpy-sim-status-title">
-              <b>Rp{payment.payableAmount.toLocaleString('id-ID')}</b>
-              <small>{`Nominal dasar Rp${payment.baseAmount.toLocaleString('id-ID')} + penanda ${payment.surcharge}`}</small>
+          <div className="gpy-sim-head">
+            <div className="gpy-sim-head-main">
+              <span className="gpy-sim-amount">Rp{payment.payableAmount.toLocaleString('id-ID')}</span>
+              <small>Nominal dasar Rp{payment.baseAmount.toLocaleString('id-ID')} + penanda {payment.surcharge}</small>
             </div>
             <span className={`gpy-pill ${payment.status === 'paid' ? 'connected' : ''}`}>{statusLabel}</span>
           </div>
+          {payment.status === 'pending' && (
+            <div className="gpy-sim-timer">
+              <div className="gpy-sim-timer-label">
+                <span>Berlaku sampai</span>
+                <b>{countdown}</b>
+              </div>
+              <div className="gpy-sim-progress"><span style={{ width: `${progress}%` }} /></div>
+            </div>
+          )}
           {payment.status === 'paid' ? (
             <div className="gpy-payment-success" role="status" aria-live="polite">
-              <Check size={28} />
+              <Check size={26} />
               <div>
                 <strong>Pembayaran berhasil</strong>
                 <span>Pembayaran GoPay sudah terkonfirmasi.</span>
@@ -109,15 +136,26 @@ function SimulateCard({ onDone }) {
             </div>
           ) : payment.status === 'pending' ? (
             <div className="gpy-sim-qr-box">
-              <img className="gpy-sim-qr" alt="QRIS dinamis" src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payment.qris)}`} />
-              <code className="gpy-sim-payload">{payment.qris}</code>
+              <div className="gpy-sim-qr-frame">
+                <img className="gpy-sim-qr" alt="QRIS dinamis" src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=0&data=${encodeURIComponent(payment.qris)}`} />
+              </div>
+              <p className="gpy-sim-hint">Pindai kode ini lewat aplikasi GoPay atau m-banking.</p>
+              <div className="gpy-sim-payload">
+                <code>{payment.qris}</code>
+                <button type="button" onClick={copyPayload} aria-label="Salin payload QRIS">
+                  {copied ? <Check size={14} /> : <Clipboard size={14} />}
+                </button>
+              </div>
             </div>
           ) : (
-            <p className="gpy-muted-text">Waktu pembayaran habis. Buat transaksi baru untuk mencoba lagi.</p>
+            <div className="gpy-sim-empty">
+              <X size={22} />
+              <p>Waktu pembayaran habis. Buat transaksi baru untuk mencoba lagi.</p>
+            </div>
           )}
           {pollError && payment.status === 'pending' && <p className="gpy-warning-text" role="status">{pollError}</p>}
-          <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setPayment(null); setAmount(''); setSecondsLeft(0); setPollError(''); }}>
-            Buat transaksi baru
+          <button className="gpy-btn gpy-btn-secondary gpy-btn-block" onClick={() => { setPayment(null); setAmount(''); setSecondsLeft(0); setPollError(''); }}>
+            <RefreshCw size={14} /> Buat transaksi baru
           </button>
         </div>
       )}
@@ -125,10 +163,164 @@ function SimulateCard({ onDone }) {
     </section>
   );
 }
+
+function readQrisFromImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const maxSide = 1400;
+        const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const scale = ratio < 1 ? ratio : Math.min(3, Math.max(1, 900 / Math.max(img.naturalWidth, img.naturalHeight)));
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const result = jsQR(data.data, data.width, data.height, { inversionAttempts: 'attemptBoth' });
+        URL.revokeObjectURL(url);
+        if (!result || !result.data) return reject(new Error('QR code tidak terdeteksi. Pastikan seluruh kode terlihat jelas dan tidak terpotong.'));
+        resolve(result.data);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(new Error('Gambar tidak bisa dibaca. Coba foto lain.'));
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('File gambar tidak valid.')); };
+    img.src = url;
+  });
+}
+
+function QrisCard({ configured, onSaved }) {
+  const inputRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState('');
+  const [payload, setPayload] = useState('');
+  const [reading, setReading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = async (selected) => {
+    if (!selected) return;
+    if (!selected.type.startsWith('image/')) { setError('Format harus berupa gambar (JPG atau PNG).'); return; }
+    setError(''); setNotice(''); setPayload('');
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setReading(true);
+    try {
+      const decoded = await readQrisFromImage(selected);
+      setPayload(decoded);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const reset = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null); setPreview(''); setPayload(''); setError(''); setNotice('');
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const save = async () => {
+    if (!payload) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await request('/api/qris', { method: 'PUT', body: JSON.stringify({ staticQris: payload }) });
+      setNotice('QRIS berhasil disimpan.');
+      reset();
+      if (onSaved) await onSaved();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="gpy-panel" id="qris">
+      <div className="gpy-panel-head">
+        <div>
+          <p className="gpy-section-label">03 / QRIS CONFIGURATION</p>
+          <h3>QRIS statis</h3>
+        </div>
+        <QrCode size={18} />
+      </div>
+      <p className="gpy-desc">Unggah foto QRIS merchant kamu. String QRIS akan dibaca otomatis dari gambar saat kamu konfirmasi.</p>
+
+      {configured && !file && (
+        <div className="gpy-saved-note">
+          <ShieldCheck size={15} />
+          <div>
+            <strong>QRIS statis sudah tersimpan</strong>
+            <small>Unggah foto baru untuk menggantinya.</small>
+          </div>
+        </div>
+      )}
+
+      {!file && (
+        <div
+          className={`gpy-drop ${dragging ? 'is-dragging' : ''}`}
+          onClick={() => inputRef.current && inputRef.current.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current && inputRef.current.click(); } }}
+        >
+          <span className="gpy-drop-icon"><ImagePlus size={20} /></span>
+          <b>Pilih foto QRIS</b>
+          <small>JPG atau PNG, seluruh kode QR terlihat utuh</small>
+        </div>
+      )}
+      <input ref={inputRef} className="gpy-file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => handleFile(e.target.files && e.target.files[0])} />
+
+      {file && (
+        <div className="gpy-qris-preview">
+          <div className="gpy-qris-media">
+            <img src={preview} alt="Pratinjau QRIS" />
+            <button type="button" className="gpy-qris-remove" onClick={reset} aria-label="Hapus foto">
+              <Trash2 size={14} />
+            </button>
+          </div>
+          <div className="gpy-qris-meta">
+            <p className="gpy-qris-file">{file.name}</p>
+            {reading && (
+              <span className="gpy-qris-state is-reading"><Loader2 size={13} className="gpy-spin" /> Membaca QRIS dari gambar…</span>
+            )}
+            {!reading && payload && (
+              <span className="gpy-qris-state is-ok"><Check size={13} /> QRIS berhasil dibaca</span>
+            )}
+            {!reading && !payload && error && (
+              <span className="gpy-qris-state is-error"><X size={13} /> QRIS tidak terbaca</span>
+            )}
+            {payload && <code className="gpy-qris-payload">{payload}</code>}
+          </div>
+        </div>
+      )}
+
+      {file && (
+        <div className="gpy-actions-row">
+          <button className="gpy-btn gpy-btn-primary gpy-btn-block" onClick={save} disabled={busy || reading || !payload}>
+            {busy ? <><Loader2 size={14} className="gpy-spin" /> Menyimpan…</> : <>Konfirmasi &amp; Simpan <Check size={14} /></>}
+          </button>
+        </div>
+      )}
+      {error && <p className="gpy-warning-text" role="alert">{error}</p>}
+      {notice && <p className="gpy-notice-inline" role="status"><Check size={13} /> {notice}</p>}
+    </section>
+  );
+}
 function GoPayManagement() {
   const [data, setData] = useState(null);
   const [apiKey, setApiKey] = useState('');
-  const [qris, setQris] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -140,7 +332,6 @@ function GoPayManagement() {
     try {
       const result = await request('/api/dashboard');
       setData(result);
-      setQris(result.qris.staticQris || '');
       setPhone(result.gopay.phone_number || '');
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
@@ -149,21 +340,6 @@ function GoPayManagement() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const saveQris = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setNotice('');
-    try {
-      await request('/api/qris', { method: 'PUT', body: JSON.stringify({ staticQris: qris }) });
-      setNotice('QRIS berhasil disimpan.');
-      await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const createKey = async () => {
     setBusy(true);
@@ -320,28 +496,7 @@ function GoPayManagement() {
             </section>
           </div>
 
-          <section className="gpy-panel" id="qris">
-            <div className="gpy-panel-head">
-              <div>
-                <p className="gpy-section-label">03 / QRIS CONFIGURATION</p>
-              </div>
-              <QrCode size={18} />
-            </div>
-            <form onSubmit={saveQris} className="gpy-form">
-              <label className="gpy-label" htmlFor="qris">QRIS string</label>
-              <textarea className="gpy-textarea" id="qris" value={qris} onChange={(e) => setQris(e.target.value)} placeholder="Tempel QRIS statis kamu di sini…" spellCheck="false" />
-              <div className="gpy-actions-row">
-                <button className="gpy-btn gpy-btn-primary" disabled={busy || !qris.trim()}>
-                  {busy ? 'Menyimpan…' : 'Simpan QRIS'} <Check size={14} />
-                </button>
-                {data.qris.configured && (
-                  <span className="gpy-saved-badge">
-                    <Check size={14} /> QRIS tersimpan
-                  </span>
-                )}
-              </div>
-            </form>
-          </section>
+          <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
 
           <SimulateCard onDone={load} />
         </main>

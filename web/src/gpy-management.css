@@ -418,68 +418,456 @@
   font-weight: 500;
 }
 
-/* Simulation section */
-.gpy-sim-result {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* ============ QRIS upload card ============ */
+.gpy-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.gpy-sim-status {
+.gpy-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 26px 18px;
+  border: 1px dashed #d3d8de;
+  border-radius: 7px;
+  background: #fbfcfd;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.16s, background 0.16s;
+}
+
+.gpy-drop:hover,
+.gpy-drop.is-dragging {
+  border-color: #285846;
+  background: #f2f7f4;
+}
+
+.gpy-drop:focus-visible {
+  outline: 2px solid #285846;
+  outline-offset: 2px;
+}
+
+.gpy-drop-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eef3f0;
+  color: #285846;
+  margin-bottom: 3px;
+}
+
+.gpy-drop b {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #20252a;
+}
+
+.gpy-drop small {
+  font-size: 10px;
+  color: #8a9099;
+}
+
+.gpy-saved-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d4ebd9;
+  background: #f3faf6;
+  border-radius: 6px;
+  color: #285846;
+  margin-bottom: 12px;
+}
+
+.gpy-saved-note strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e5a43;
+}
+
+.gpy-saved-note small {
+  display: block;
+  font-size: 10px;
+  color: #5f8a76;
+  margin-top: 1px;
+}
+
+.gpy-qris-preview {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #fbfcfd;
+}
+
+.gpy-qris-media {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.gpy-qris-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gpy-qris-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(23, 25, 29, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.gpy-qris-remove:hover {
+  background: #a73c2b;
+}
+
+.gpy-qris-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-qris-file {
+  font-size: 11px;
+  font-weight: 600;
+  color: #20252a;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpy-qris-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.gpy-qris-state.is-reading {
+  background: #f4f6f8;
+  color: #5d646d;
+}
+
+.gpy-qris-state.is-ok {
+  background: rgba(46, 155, 111, 0.13);
+  color: #34a97b;
+}
+
+.gpy-qris-state.is-error {
+  background: #fdf2f0;
+  color: #a73c2b;
+}
+
+.gpy-qris-payload {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  line-height: 1.5;
+  color: #555c65;
+  background: #fff;
+  border: 1px solid var(--studio-border);
+  border-radius: 5px;
+  padding: 7px 9px;
+  max-height: 62px;
+  overflow-y: auto;
+  word-break: break-all;
+}
+
+.gpy-notice-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #34a97b;
+  margin: 10px 0 0;
+}
+
+.gpy-spin {
+  animation: gpy-spin 0.9s linear infinite;
+}
+
+@keyframes gpy-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .gpy-qris-preview {
+    flex-direction: column;
+  }
+  .gpy-qris-media {
+    width: 100%;
+    height: 150px;
+  }
+}
+
+/* ============ Simulation card ============ */
+.gpy-amount-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gpy-amount-field:focus-within {
+  border-color: #285846;
+  box-shadow: 0 0 0 3px #eef3f0;
+}
+
+.gpy-amount-field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a9099;
+}
+
+.gpy-amount-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #17191d;
+  font-family: inherit;
+}
+
+.gpy-amount-field input::placeholder {
+  color: #c2c7ce;
+  font-weight: 500;
+}
+
+.gpy-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gpy-chip {
+  height: 27px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5d646d;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gpy-chip:hover {
+  border-color: #285846;
+  color: #285846;
+}
+
+.gpy-chip.is-active {
+  background: #285846;
+  border-color: #285846;
+  color: #fff;
+}
+
+.gpy-btn-block {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.gpy-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gpy-sim-result {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gpy-sim-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  background: #f8f9fb;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+}
+
+.gpy-sim-head-main {
+  min-width: 0;
+}
+
+.gpy-sim-amount {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #17191d;
+}
+
+.gpy-sim-head-main small {
+  display: block;
+  font-size: 10px;
+  color: #818791;
+  margin-top: 2px;
+}
+
+.gpy-sim-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-sim-timer-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  background: #f8f9fb;
-  border: 1px solid var(--studio-border);
-  border-radius: 6px;
-}
-
-.gpy-sim-status-title b {
-  font-size: 14px;
-  color: #20252a;
-  font-weight: 600;
-  display: block;
-}
-
-.gpy-sim-status-title small {
   font-size: 10px;
   color: #818791;
+}
+
+.gpy-sim-timer-label b {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #20252a;
+  letter-spacing: 0.02em;
+}
+
+.gpy-sim-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: #eceef1;
+  overflow: hidden;
+}
+
+.gpy-sim-progress span {
   display: block;
-  margin-top: 2px;
+  height: 100%;
+  border-radius: 999px;
+  background: #285846;
+  transition: width 1s linear;
 }
 
 .gpy-sim-qr-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px;
+  gap: 11px;
+  padding: 18px;
   background: #fff;
   border: 1px solid var(--studio-border);
+  border-radius: 7px;
+}
+
+.gpy-sim-qr-frame {
+  padding: 9px;
+  border: 1px solid var(--studio-border);
   border-radius: 6px;
+  background: #fff;
 }
 
 .gpy-sim-qr {
-  width: 180px;
-  height: 180px;
-  padding: 6px;
-  background: #fff;
-  border: 1px solid var(--studio-border);
-  border-radius: 4px;
+  display: block;
+  width: 190px;
+  height: 190px;
+}
+
+.gpy-sim-hint {
+  font-size: 10px;
+  color: #818791;
+  margin: 0;
+  text-align: center;
 }
 
 .gpy-sim-payload {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  color: #555c65;
-  background: #f0f4f1;
-  padding: 8px 10px;
-  border-radius: 4px;
-  word-break: break-all;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
-  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: #555c65;
+  background: #f8f9fb;
+  padding: 8px 10px;
+  border-radius: 5px;
+  word-break: break-all;
+}
+
+.gpy-sim-payload code {
+  flex: 1;
+  min-width: 0;
+  max-height: 48px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.gpy-sim-payload button {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  color: #285846;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.gpy-sim-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 15px;
+  border: 1px solid #f2ddd6;
+  border-radius: 7px;
+  background: #fdf7f5;
+  color: #9a6a50;
+}
+
+.gpy-sim-empty p {
+  font-size: 10.5px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .gpy-payment-success {
