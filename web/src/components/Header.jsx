@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Activity, WalletCards } from 'lucide-react';
+import { LogOut, Activity, WalletCards, KeyRound } from 'lucide-react';
 import './Header.css';
 
 export function Header({ onLogout, managementMode = false, user = null }) {
@@ -81,6 +81,10 @@ export function Header({ onLogout, managementMode = false, user = null }) {
         <a href="/gpy-manager" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <WalletCards size={20} />
           <span>GoPay Management</span>
+        </a>
+        <a href="/apikey" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <KeyRound size={20} />
+          <span>Api Key</span>
         </a>
         <div className="mobile-menu-profile">
           <span className="nav-profile-avatar">{avatarLetter}</span>

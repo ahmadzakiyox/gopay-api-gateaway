@@ -81,7 +81,7 @@ function SimulateCard({ onDone }) {
     <section className="gpy-panel" id="simulate">
       <div className="gpy-panel-head">
         <div>
-          <p className="gpy-section-label">04 / SIMULATION</p>
+          <p className="gpy-section-label">03 / SIMULATION</p>
           <h3>Simulasi transaksi</h3>
         </div>
         <QrCode size={18} />
@@ -266,7 +266,7 @@ function QrisCard({ configured, onSaved }) {
     <section className="gpy-panel" id="qris">
       <div className="gpy-panel-head">
         <div>
-          <p className="gpy-section-label">03 / QRIS CONFIGURATION</p>
+          <p className="gpy-section-label">02 / QRIS CONFIGURATION</p>
           <h3>QRIS statis</h3>
         </div>
         <QrCode size={18} />
@@ -339,7 +339,6 @@ function QrisCard({ configured, onSaved }) {
 }
 function GoPayManagement() {
   const [data, setData] = useState(null);
-  const [apiKey, setApiKey] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -359,29 +358,6 @@ function GoPayManagement() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const createKey = async () => {
-    setBusy(true);
-    try {
-      const result = await request('/api/api-key', { method: 'POST' });
-      setApiKey(result.apiKey.key);
-      setNotice('API key siap digunakan.');
-      await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const revealKey = async () => {
-    try {
-      const result = await request('/api/api-key');
-      setApiKey(result.apiKey.key);
-    } catch (e) {
-      setError(e.message);
-    }
-  };
 
   const startGoPay = async (e) => {
     e.preventDefault();
@@ -417,6 +393,125 @@ function GoPayManagement() {
     }
   };
 
+  const logout = async () => {
+    await request('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/';
+  };
+
+  if (!data) return <div className="loading">Memuat workspace…</div>;
+
+  return (
+    <div className="page-shell">
+      <div className="app-shell studio-shell gpy-management-shell">
+        <Header management onLogout={logout} user={data.user} />
+        <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
+          {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
+          {error && <div className="gpy-error">{error}</div>}
+
+          <section className="gpy-panel" id="connection">
+            <div className="gpy-panel-head">
+              <div>
+                <p className="gpy-section-label">01 / CONNECTION</p>
+                <h3>{data.gopay.merchant_name || 'GoPay Merchant'}</h3>
+              </div>
+              <Smartphone size={18} />
+            </div>
+            {data.gopay.merchant_name && (
+              <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
+            )}
+            {data.gopay.owner_name && (
+              <Row icon={User} label="Owner" value={data.gopay.owner_name} />
+            )}
+            {data.gopay.merchant_id && (
+              <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
+            )}
+            <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
+            <Row
+              icon={ShieldCheck}
+              label="Session"
+              value={data.gopay.status === 'connected' ? 'Active' : 'Belum terhubung'}
+              valueClass={data.gopay.status === 'connected' ? 'gpy-status-active' : ''}
+            />
+            {data.gopay.status !== 'connected' && !otpSent && (
+              <form onSubmit={startGoPay} className="gpy-form">
+                <label className="gpy-label" htmlFor="phone">Nomor GoPay/GoBiz</label>
+                <input className="gpy-input" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
+                <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !phone.trim()}>
+                  <RefreshCw size={14} /> {busy ? 'Mengirim OTP…' : 'Kirim OTP'}
+                </button>
+              </form>
+            )}
+            {data.gopay.status !== 'connected' && otpSent && (
+              <form onSubmit={verifyGoPay} className="gpy-form">
+                <label className="gpy-label" htmlFor="otp">Kode OTP</label>
+                <input className="gpy-input" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
+                <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
+                  <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi OTP'}
+                </button>
+              </form>
+            )}
+            {data.gopay.status === 'connected' && (
+              <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
+                <RefreshCw size={14} /> Reconnect GoPay
+              </button>
+            )}
+          </section>
+
+          <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
+
+          <SimulateCard onDone={load} />
+        </main>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function ApiKeyPage() {
+  const [data, setData] = useState(null);
+  const [apiKey, setApiKey] = useState('');
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    try {
+      const result = await request('/api/dashboard');
+      setData(result);
+    } catch (e) {
+      if (e.message.includes('Login')) window.location.href = '/';
+      else setError(e.message);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const createKey = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await request('/api/api-key', { method: 'POST' });
+      setApiKey(result.apiKey.key);
+      setNotice('API key siap digunakan.');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revealKey = async () => {
+    setError('');
+    try {
+      const result = await request('/api/api-key');
+      setApiKey(result.apiKey.key);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const copy = async (text) => {
     await navigator.clipboard.writeText(text);
     setNotice('Disalin ke clipboard.');
@@ -437,93 +532,48 @@ function GoPayManagement() {
           {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
           {error && <div className="gpy-error">{error}</div>}
 
-          <div className="gpy-grid-two">
-            <section className="gpy-panel" id="connection">
-              <div className="gpy-panel-head">
-                <div>
-                  <p className="gpy-section-label">01 / CONNECTION</p>
-                  <h3>{data.gopay.merchant_name || 'GoPay Merchant'}</h3>
-                </div>
-                <Smartphone size={18} />
+          <section className="gpy-panel" id="api-key">
+            <div className="gpy-panel-head">
+              <div>
+                <p className="gpy-section-label">01 / ACCESS</p>
+                <h3>Api Key</h3>
               </div>
-              {data.gopay.merchant_name && (
-                <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
-              )}
-              {data.gopay.owner_name && (
-                <Row icon={User} label="Owner" value={data.gopay.owner_name} />
-              )}
-              {data.gopay.merchant_id && (
-                <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
-              )}
-              <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
-              <Row
-                icon={ShieldCheck}
-                label="Session"
-                value={data.gopay.status === 'connected' ? 'Active' : 'Belum terhubung'}
-                valueClass={data.gopay.status === 'connected' ? 'gpy-status-active' : ''}
-              />
-              {data.gopay.status !== 'connected' && !otpSent && (
-                <form onSubmit={startGoPay} className="gpy-form">
-                  <label className="gpy-label" htmlFor="phone">Nomor GoPay/GoBiz</label>
-                  <input className="gpy-input" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
-                  <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !phone.trim()}>
-                    <RefreshCw size={14} /> {busy ? 'Mengirim OTP…' : 'Kirim OTP'}
-                  </button>
-                </form>
-              )}
-              {data.gopay.status !== 'connected' && otpSent && (
-                <form onSubmit={verifyGoPay} className="gpy-form">
-                  <label className="gpy-label" htmlFor="otp">Kode OTP</label>
-                  <input className="gpy-input" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
-                  <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
-                    <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi OTP'}
-                  </button>
-                </form>
-              )}
-              {data.gopay.status === 'connected' && (
-                <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
-                  <RefreshCw size={14} /> Reconnect GoPay
+              <KeyRound size={18} />
+            </div>
+            <p className="gpy-desc">Satu key personal untuk menghubungkan gateway ke website atau backend kamu.</p>
+            <div className="gpy-key-box">
+              <code>{apiKey || (data.apiKey ? `${data.apiKey.key_prefix}••••••••••••` : 'Belum dibuat')}</code>
+              {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey)}><Clipboard size={15} /></button>}
+              {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
+            </div>
+            <div className="gpy-actions-row">
+              <button className="gpy-btn gpy-btn-primary" onClick={data.apiKey ? revealKey : createKey} disabled={busy}>
+                {data.apiKey ? 'Tampilkan & Salin' : 'Buat API Key'} <KeyRound size={14} />
+              </button>
+              {apiKey && (
+                <button className="gpy-btn-icon" aria-label="Salin API key" onClick={() => copy(apiKey)}>
+                  <Clipboard size={15} />
                 </button>
               )}
-            </section>
-
-            <section className="gpy-panel" id="api-key">
-              <div className="gpy-panel-head">
-                <div>
-                  <p className="gpy-section-label">02 / ACCESS</p>
-                  <h3>API Key</h3>
-                </div>
-                <KeyRound size={18} />
-              </div>
-              <p className="gpy-desc">Satu key personal untuk menghubungkan gateway ke website atau backend kamu.</p>
-              <div className="gpy-key-box">
-                <code>{apiKey || (data.apiKey ? `${data.apiKey.key_prefix}••••••••••••` : 'Belum dibuat')}</code>
-                {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey)}><Clipboard size={15} /></button>}
-                {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
-              </div>
-              <div className="gpy-actions-row">
-                <button className="gpy-btn gpy-btn-primary" onClick={data.apiKey ? revealKey : createKey} disabled={busy}>
-                  {data.apiKey ? 'Tampilkan & Salin' : 'Buat API Key'} <KeyRound size={14} />
-                </button>
-                {apiKey && (
-                  <button className="gpy-btn-icon" aria-label="Salin API key" onClick={() => copy(apiKey)}>
-                    <Clipboard size={15} />
-                  </button>
-                )}
-              </div>
-              <p className="gpy-warning-text">Jangan bagikan key ini ke publik.</p>
-            </section>
-          </div>
-
-          <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
-
-          <SimulateCard onDone={load} />
+            </div>
+            <p className="gpy-warning-text">Jangan bagikan key ini ke publik.</p>
+          </section>
         </main>
       </div>
       <Footer />
     </div>
   );
 }
-function App() { const [auth, setAuth] = useState(null); useEffect(() => { request('/api/auth/status').then(setAuth).catch(() => setAuth({ authenticated: false })); }, []); if (!auth) return <div className="loading">Memuat…</div>; return auth.authenticated ? (window.location.pathname.replace(/\/$/, '') === '/gpy-manager' ? <GoPayManagement /> : <StudioTransactionDashboard request={request} user={auth.user || {}} />) : <Login />; }
+
+function App() {
+  const [auth, setAuth] = useState(null);
+  useEffect(() => { request('/api/auth/status').then(setAuth).catch(() => setAuth({ authenticated: false })); }, []);
+  if (!auth) return <div className="loading">Memuat…</div>;
+  if (!auth.authenticated) return <Login />;
+  const path = window.location.pathname.replace(/\/$/, '');
+  if (path === '/gpy-manager') return <GoPayManagement />;
+  if (path === '/apikey') return <ApiKeyPage />;
+  return <StudioTransactionDashboard request={request} user={auth.user || {}} />;
+}
 
 createRoot(document.getElementById('root')).render(<App />);
