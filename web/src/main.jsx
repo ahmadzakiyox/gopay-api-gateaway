@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Check, Clipboard, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Trash2, User, WalletCards, X } from 'lucide-react';
+import { Activity, Check, Clipboard, Code2, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
@@ -467,12 +467,387 @@ function GoPayManagement() {
   );
 }
 
+function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
+  const endpointUrl = `${API}/api/v1/payments`;
+  const [amount, setAmount] = useState('1000');
+  const [orderId, setOrderId] = useState(() => `api-test-${Date.now()}`);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [responseJson, setResponseJson] = useState(null);
+  const [payment, setPayment] = useState(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [logs, setLogs] = useState([]);
+  const [copiedBlock, setCopiedBlock] = useState('');
+  const lastLoggedStatusRef = useRef('');
+
+  const addLog = (status, message) => {
+    const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setLogs((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, time, status, message }]);
+  };
+
+  const copyBlock = async (key, text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedBlock(key);
+      setTimeout(() => setCopiedBlock((curr) => (curr === key ? '' : curr)), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const displayKey = apiKey || (apiKeyPrefix ? `${apiKeyPrefix}••••••••••••` : 'gpg_YOUR_API_KEY');
+  const numericAmount = Number(amount) || 1000;
+  const sampleRequestPayload = {
+    orderId: orderId || 'api-test-1',
+    amount: numericAmount,
+    expiresIn: 300
+  };
+
+  const curlSample = `curl -X POST "${endpointUrl}" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: *** \\
+  -d '${JSON.stringify(sampleRequestPayload)}'`;
+
+  const sampleOutputFallback = {
+    success: true,
+    payment: {
+      trxId: '019a0000-0000-7000-8000-000000000000',
+      orderId: sampleRequestPayload.orderId,
+      status: 'pending',
+      baseAmount: numericAmount,
+      surcharge: 35,
+      payableAmount: numericAmount + 35,
+      qris: '00020101021226610014COM.GO-JEK.WWW...',
+      expiresAt: new Date(Date.now() + 300000).toISOString(),
+      paidAt: null
+    }
+  };
+
+  const runTest = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    setPayment(null);
+    setResponseJson(null);
+    setSecondsLeft(0);
+    setLogs([]);
+    lastLoggedStatusRef.current = '';
+
+    try {
+      let activeKey = apiKey;
+      if (!activeKey && onRequireKey) {
+        activeKey = await onRequireKey();
+      }
+      if (!activeKey) {
+        throw new Error('Buat atau tampilkan API Key terlebih dahulu di card atas.');
+      }
+
+      const currentOrderId = orderId.trim() || `api-test-${Date.now()}`;
+      const bodyPayload = {
+        orderId: currentOrderId,
+        amount: Number(amount),
+        expiresIn: 300
+      };
+
+      addLog('request', `POST /api/v1/payments (orderId: ${currentOrderId}, amount: Rp${Number(amount).toLocaleString('id-ID')})`);
+
+      const res = await fetch(`${API}/api/v1/payments`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': activeKey
+        },
+        body: JSON.stringify(bodyPayload)
+      });
+      const data = await res.json().catch(() => ({}));
+      setResponseJson(data);
+
+      if (!res.ok || !data.payment) {
+        addLog('error', `HTTP ${res.status} - ${data.error || 'Gagal membuat transaksi'}`);
+        throw new Error(data.error || 'Gagal membuat transaksi test');
+      }
+
+      setPayment(data.payment);
+      setSecondsLeft(300);
+      lastLoggedStatusRef.current = data.payment.status;
+      addLog(
+        'pending',
+        `PENDING — Tagihan QRIS aktif sebesar Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} (dasar Rp${Number(data.payment.baseAmount).toLocaleString('id-ID')} + penanda ${data.payment.surcharge}). Menunggu pembayaran…`
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!payment || payment.status !== 'pending' || secondsLeft <= 0) return undefined;
+    let active = true;
+
+    const pollStatus = async () => {
+      try {
+        const headers = { 'content-type': 'application/json' };
+        if (apiKey) headers['x-api-key'] = apiKey;
+        const res = await fetch(`${API}/api/v1/payments/${payment.trxId}`, {
+          credentials: 'include',
+          headers
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!active || !res.ok || !data.payment) return;
+
+        setResponseJson(data);
+        setPayment(data.payment);
+
+        if (data.payment.status !== lastLoggedStatusRef.current) {
+          lastLoggedStatusRef.current = data.payment.status;
+          if (data.payment.status === 'paid') {
+            const issuer = data.payment.providerTransaction?.issuer || 'QRIS';
+            addLog('paid', `SUKSES (PAID) — Pembayaran Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} diterima via ${issuer}.`);
+          } else if (data.payment.status === 'expired') {
+            addLog('expired', 'EXPIRED — Waktu pembayaran habis sebelum transaksi dibayar.');
+          }
+        }
+      } catch {
+        /* ignore transient poll error */
+      }
+    };
+
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        const next = Math.max(0, prev - 3);
+        if (next === 0 && lastLoggedStatusRef.current === 'pending') {
+          lastLoggedStatusRef.current = 'expired';
+          setPayment((curr) => (curr ? { ...curr, status: 'expired' } : curr));
+          setResponseJson((curr) => (curr && curr.payment ? { ...curr, payment: { ...curr.payment, status: 'expired' } } : curr));
+          addLog('expired', 'EXPIRED — Batas waktu 5 menit berakhir.');
+        }
+        return next;
+      });
+      pollStatus();
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [payment && payment.trxId, payment && payment.status, secondsLeft > 0, apiKey]);
+
+  const statusLabel = !payment
+    ? 'Contoh Output'
+    : payment.status === 'paid'
+    ? 'PAID / SUKSES'
+    : payment.status === 'expired'
+    ? 'EXPIRED'
+    : 'PENDING';
+
+  const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const progress = Math.max(0, Math.min(100, (secondsLeft / 300) * 100));
+  const quickAmounts = [100, 1000, 10000, 25000];
+  const jsonToDisplay = JSON.stringify(responseJson || sampleOutputFallback, null, 2);
+
+  return (
+    <section className="gpy-panel" id="api-key-sandbox">
+      <div className="gpy-panel-head">
+        <div>
+          <p className="gpy-section-label">02 / API SANDBOX</p>
+          <h3>Test transaksi via Api Key</h3>
+        </div>
+        <Terminal size={18} />
+      </div>
+      <p className="gpy-desc">
+        Uji langsung pembuatan tagihan QRIS menggunakan endpoint dan API Key kamu. Scan QRIS yang muncul untuk melihat perubahan response JSON dan log status secara real-time.
+      </p>
+
+      <form onSubmit={runTest} className="gpy-form">
+        <div className="gpy-sandbox-inputs">
+          <div>
+            <label className="gpy-label" htmlFor="sandbox-amount">Nominal Test (Rp)</label>
+            <div className="gpy-amount-field">
+              <span>Rp</span>
+              <input
+                id="sandbox-amount"
+                value={amount ? Number(amount).toLocaleString('id-ID') : ''}
+                onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
+                placeholder="1.000"
+                inputMode="numeric"
+                autoComplete="off"
+              />
+            </div>
+            <div className="gpy-chips">
+              {quickAmounts.map((val) => (
+                <button
+                  type="button"
+                  key={val}
+                  className={`gpy-chip ${Number(amount) === val ? 'is-active' : ''}`}
+                  onClick={() => setAmount(String(val))}
+                >
+                  {val >= 1000 ? `Rp${(val / 1000).toLocaleString('id-ID')}rb` : `Rp${val}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="gpy-label" htmlFor="sandbox-order-id">Order ID</label>
+            <div className="gpy-orderid-row">
+              <input
+                id="sandbox-order-id"
+                className="gpy-input"
+                value={orderId}
+                onChange={(e) => setOrderId(e.target.value)}
+                placeholder="api-test-123"
+              />
+              <button
+                type="button"
+                className="gpy-btn gpy-btn-secondary"
+                onClick={() => setOrderId(`api-test-${Date.now()}`)}
+                title="Generate Order ID baru"
+              >
+                <RefreshCw size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="gpy-code-section">
+          <div className="gpy-code-head">
+            <span><Code2 size={13} /> Contoh Request (POST /api/v1/payments)</span>
+            <button type="button" onClick={() => copyBlock('req', curlSample)}>
+              {copiedBlock === 'req' ? <><Check size={12} /> Tersalin</> : <><Clipboard size={12} /> Salin</>}
+            </button>
+          </div>
+          <pre className="gpy-code-pre"><code>{curlSample}</code></pre>
+        </div>
+
+        {error && <div className="gpy-error" style={{ marginTop: 12, marginBottom: 0 }}>{error}</div>}
+
+        <div className="gpy-actions-row">
+          <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
+            {busy ? (
+              <><Loader2 size={15} className="gpy-spin" /> Mengirim Request API…</>
+            ) : (
+              <><Play size={14} /> Test Buat QRIS via API Key</>
+            )}
+          </button>
+        </div>
+      </form>
+
+      {payment && (
+        <div className="gpy-sim-result" style={{ marginTop: 16 }}>
+          <div className="gpy-sim-head">
+            <div className="gpy-sim-head-main">
+              <span className="gpy-sim-amount">Rp{Number(payment.payableAmount).toLocaleString('id-ID')}</span>
+              <small>Nominal dasar Rp{Number(payment.baseAmount).toLocaleString('id-ID')} + penanda {payment.surcharge} • Order: {payment.orderId}</small>
+            </div>
+            <span className={`gpy-pill ${payment.status === 'paid' ? 'connected' : payment.status === 'expired' ? 'is-expired' : 'is-pending'}`}>
+              {statusLabel}
+            </span>
+          </div>
+
+          {payment.status === 'pending' && (
+            <div className="gpy-sim-timer">
+              <div className="gpy-sim-timer-label">
+                <span>Berlaku sampai</span>
+                <b>{countdown}</b>
+              </div>
+              <div className="gpy-sim-progress"><span style={{ width: `${progress}%` }} /></div>
+            </div>
+          )}
+
+          {payment.status === 'paid' ? (
+            <div className="gpy-payment-success" role="status" aria-live="polite">
+              <Check size={24} />
+              <div>
+                <strong>Pembayaran berhasil diterima</strong>
+                <span>Transaksi {payment.trxId} sudah berstatus PAID.</span>
+              </div>
+            </div>
+          ) : payment.status === 'pending' ? (
+            <div className="gpy-sim-qr-box">
+              <div className="gpy-sim-qr-frame">
+                <img
+                  className="gpy-sim-qr"
+                  alt="QRIS dinamis test API"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=0&data=${encodeURIComponent(payment.qris)}`}
+                />
+              </div>
+              <p className="gpy-sim-hint">Scan QRIS ini untuk menguji pembayaran dan melihat perubahan log JSON di bawah.</p>
+              <div className="gpy-sim-payload">
+                <code>{payment.qris}</code>
+                <button type="button" onClick={() => copyBlock('qris', payment.qris)} aria-label="Salin payload QRIS">
+                  {copiedBlock === 'qris' ? <Check size={14} /> : <Clipboard size={14} />}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="gpy-sim-empty">
+              <X size={20} />
+              <p>Transaksi test kedaluwarsa (EXPIRED). Klik tombol di bawah untuk membuat test baru.</p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="gpy-btn gpy-btn-secondary gpy-btn-block"
+            onClick={() => {
+              setOrderId(`api-test-${Date.now()}`);
+              setPayment(null);
+              setSecondsLeft(0);
+            }}
+          >
+            <RefreshCw size={14} /> Reset & Buat Order Baru
+          </button>
+        </div>
+      )}
+
+      <div className="gpy-code-section" style={{ marginTop: 16 }}>
+        <div className="gpy-code-head">
+          <span>
+            <Terminal size={13} /> {responseJson ? 'Live Output JSON & Log Status' : 'Contoh Output JSON'}
+          </span>
+          <div className="gpy-code-head-right">
+            <span className={`gpy-status-dot ${payment ? `is-${payment.status}` : ''}`}>
+              {statusLabel}
+            </span>
+            <button type="button" onClick={() => copyBlock('json', jsonToDisplay)}>
+              {copiedBlock === 'json' ? <><Check size={12} /> Tersalin</> : <><Clipboard size={12} /> Salin JSON</>}
+            </button>
+          </div>
+        </div>
+        <pre className="gpy-code-pre"><code>{jsonToDisplay}</code></pre>
+
+        <div className="gpy-log-box">
+          <div className="gpy-log-title">Log Status Transaksi (Live Polling)</div>
+          {logs.length === 0 ? (
+            <div className="gpy-log-empty">
+              Belum ada aktivitas test. Klik &quot;Test Buat QRIS via API Key&quot; untuk melihat log status PENDING, PAID (Sukses), atau EXPIRED di sini.
+            </div>
+          ) : (
+            <div className="gpy-log-list">
+              {logs.map((item) => (
+                <div key={item.id} className={`gpy-log-item is-${item.status}`}>
+                  <span className="gpy-log-time">[{item.time}]</span>
+                  <span className={`gpy-log-badge is-${item.status}`}>{item.status.toUpperCase()}</span>
+                  <span className="gpy-log-msg">{item.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ApiKeyPage() {
   const [data, setData] = useState(null);
   const [apiKey, setApiKey] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const endpointBase = `${API}/api/v1/payments`;
 
   const load = async () => {
     try {
@@ -495,8 +870,10 @@ function ApiKeyPage() {
       setApiKey(result.apiKey.key);
       setNotice('API key siap digunakan.');
       await load();
+      return result.apiKey.key;
     } catch (e) {
       setError(e.message);
+      return '';
     } finally {
       setBusy(false);
     }
@@ -507,14 +884,22 @@ function ApiKeyPage() {
     try {
       const result = await request('/api/api-key');
       setApiKey(result.apiKey.key);
+      return result.apiKey.key;
     } catch (e) {
       setError(e.message);
+      return '';
     }
   };
 
-  const copy = async (text) => {
+  const ensureKeyForTest = async () => {
+    if (apiKey) return apiKey;
+    if (data?.apiKey) return await revealKey();
+    return await createKey();
+  };
+
+  const copy = async (text, label = 'Disalin ke clipboard.') => {
     await navigator.clipboard.writeText(text);
-    setNotice('Disalin ke clipboard.');
+    setNotice(label);
   };
 
   const logout = async () => {
@@ -541,9 +926,19 @@ function ApiKeyPage() {
               <KeyRound size={18} />
             </div>
             <p className="gpy-desc">Satu key personal untuk menghubungkan gateway ke website atau backend kamu.</p>
-            <div className="gpy-key-box">
+
+            <label className="gpy-label">Endpoint API</label>
+            <div className="gpy-key-box" style={{ marginTop: 6 }}>
+              <code>{endpointBase}</code>
+              <button aria-label="Salin Endpoint API" onClick={() => copy(endpointBase, 'Endpoint API disalin ke clipboard.')}>
+                <Clipboard size={15} />
+              </button>
+            </div>
+
+            <label className="gpy-label">API Key</label>
+            <div className="gpy-key-box" style={{ marginTop: 6 }}>
               <code>{apiKey || (data.apiKey ? `${data.apiKey.key_prefix}••••••••••••` : 'Belum dibuat')}</code>
-              {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey)}><Clipboard size={15} /></button>}
+              {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey, 'API Key disalin ke clipboard.')}><Clipboard size={15} /></button>}
               {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
             </div>
             <div className="gpy-actions-row">
@@ -551,13 +946,19 @@ function ApiKeyPage() {
                 {data.apiKey ? 'Tampilkan & Salin' : 'Buat API Key'} <KeyRound size={14} />
               </button>
               {apiKey && (
-                <button className="gpy-btn-icon" aria-label="Salin API key" onClick={() => copy(apiKey)}>
+                <button className="gpy-btn-icon" aria-label="Salin API key" onClick={() => copy(apiKey, 'API Key disalin ke clipboard.')}>
                   <Clipboard size={15} />
                 </button>
               )}
             </div>
             <p className="gpy-warning-text">Jangan bagikan key ini ke publik.</p>
           </section>
+
+          <ApiKeySandboxCard
+            apiKey={apiKey}
+            apiKeyPrefix={data.apiKey?.key_prefix}
+            onRequireKey={ensureKeyForTest}
+          />
         </main>
       </div>
       <Footer />

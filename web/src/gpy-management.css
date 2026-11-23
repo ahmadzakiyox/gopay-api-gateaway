@@ -893,3 +893,204 @@
   color: #3b765b;
   margin-top: 2px;
 }
+
+/* ============ API Sandbox card ============ */
+.gpy-sandbox-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .gpy-sandbox-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gpy-orderid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gpy-orderid-row .gpy-input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+}
+
+.gpy-orderid-row .gpy-btn {
+  height: 46px;
+  padding: 0 13px;
+  flex-shrink: 0;
+}
+
+.gpy-code-section {
+  margin-top: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #f8f9fb;
+  overflow: hidden;
+}
+
+.gpy-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f3f5;
+  border-bottom: 1px solid var(--studio-border);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #363c44;
+}
+
+.gpy-code-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gpy-code-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gpy-code-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  color: #285846;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.gpy-code-pre {
+  margin: 0;
+  padding: 11px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: #20252a;
+  background: #fbfcfd;
+  overflow-x: auto;
+  max-height: 240px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gpy-status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e6eaee;
+  color: #4e555e;
+}
+
+.gpy-status-dot.is-pending,
+.gpy-pill.is-pending {
+  background: #fff4df;
+  color: #946200;
+  border-color: #f3dcab;
+}
+
+.gpy-status-dot.is-paid {
+  background: rgba(46, 155, 111, 0.14);
+  color: #1e6b4e;
+}
+
+.gpy-status-dot.is-expired,
+.gpy-pill.is-expired {
+  background: #fdf2f0;
+  color: #a73c2b;
+  border-color: #fad5cf;
+}
+
+.gpy-log-box {
+  border-top: 1px solid var(--studio-border);
+  padding: 10px 12px;
+  background: #f4f6f8;
+}
+
+.gpy-log-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b727c;
+  margin-bottom: 7px;
+}
+
+.gpy-log-empty {
+  font-size: 10.5px;
+  color: #7d848e;
+  line-height: 1.5;
+}
+
+.gpy-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: #fff;
+  border: 1px solid var(--studio-border);
+}
+
+.gpy-log-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #7d848e;
+  flex-shrink: 0;
+}
+
+.gpy-log-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #eef1f4;
+  color: #495058;
+}
+
+.gpy-log-badge.is-pending {
+  background: #fff4df;
+  color: #946200;
+}
+
+.gpy-log-badge.is-paid {
+  background: rgba(46, 155, 111, 0.14);
+  color: #1e6b4e;
+}
+
+.gpy-log-badge.is-expired,
+.gpy-log-badge.is-error {
+  background: #fdf2f0;
+  color: #a73c2b;
+}
+
+.gpy-log-msg {
+  color: #20252a;
+  word-break: break-word;
+}
