@@ -656,9 +656,6 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
         </div>
         <Terminal size={18} />
       </div>
-      <p className="gpy-desc">
-        Uji langsung pembuatan tagihan QRIS menggunakan endpoint dan API Key kamu. Scan QRIS yang muncul untuk melihat perubahan response JSON dan log status secara real-time.
-      </p>
 
       <form onSubmit={runTest} className="gpy-form">
         <div className="gpy-sandbox-inputs">
@@ -819,12 +816,8 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
         <pre className="gpy-code-pre"><code>{jsonToDisplay}</code></pre>
 
         <div className="gpy-log-box">
-          <div className="gpy-log-title">Log Status Transaksi (Live Polling)</div>
-          {logs.length === 0 ? (
-            <div className="gpy-log-empty">
-              Belum ada aktivitas test. Klik &quot;Test Buat QRIS via API Key&quot; untuk melihat log status PENDING, PAID (Sukses), atau EXPIRED di sini.
-            </div>
-          ) : (
+          <div className="gpy-log-title">Live Polling</div>
+          {logs.length > 0 && (
             <div className="gpy-log-list">
               {logs.map((item) => (
                 <div key={item.id} className={`gpy-log-item is-${item.status}`}>
@@ -847,6 +840,7 @@ function ApiKeyPage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const endpointBase = `${API}/api/v1/payments`;
 
   const load = async () => {
@@ -861,14 +855,15 @@ function ApiKeyPage() {
 
   useEffect(() => { load(); }, []);
 
-  const createKey = async () => {
+  const createKey = async (isRegenerate = false) => {
     setBusy(true);
     setError('');
     setNotice('');
     try {
       const result = await request('/api/api-key', { method: 'POST' });
       setApiKey(result.apiKey.key);
-      setNotice('API key siap digunakan.');
+      setNotice(isRegenerate ? 'API key lama dihapus dan diganti dengan API key baru.' : 'API key siap digunakan.');
+      setShowRegenerateModal(false);
       await load();
       return result.apiKey.key;
     } catch (e) {
@@ -925,7 +920,6 @@ function ApiKeyPage() {
               </div>
               <KeyRound size={18} />
             </div>
-            <p className="gpy-desc">Satu key personal untuk menghubungkan gateway ke website atau backend kamu.</p>
 
             <label className="gpy-label">Endpoint API</label>
             <div className="gpy-key-box" style={{ marginTop: 6 }}>
@@ -942,17 +936,57 @@ function ApiKeyPage() {
               {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
             </div>
             <div className="gpy-actions-row">
-              <button className="gpy-btn gpy-btn-primary" onClick={data.apiKey ? revealKey : createKey} disabled={busy}>
-                {data.apiKey ? 'Tampilkan & Salin' : 'Buat API Key'} <KeyRound size={14} />
-              </button>
-              {apiKey && (
-                <button className="gpy-btn-icon" aria-label="Salin API key" onClick={() => copy(apiKey, 'API Key disalin ke clipboard.')}>
-                  <Clipboard size={15} />
+              {data.apiKey ? (
+                <button className="gpy-btn gpy-btn-secondary" onClick={() => setShowRegenerateModal(true)} disabled={busy}>
+                  <RefreshCw size={14} /> Regenerate API Key
+                </button>
+              ) : (
+                <button className="gpy-btn gpy-btn-primary" onClick={() => createKey(false)} disabled={busy}>
+                  Buat API Key <KeyRound size={14} />
                 </button>
               )}
             </div>
             <p className="gpy-warning-text">Jangan bagikan key ini ke publik.</p>
           </section>
+
+          {showRegenerateModal && (
+            <div className="gpy-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="regen-modal-title">
+              <div className="gpy-modal-card">
+                <div className="gpy-modal-head">
+                  <h4 id="regen-modal-title">Regenerate API Key?</h4>
+                  <button
+                    type="button"
+                    className="gpy-modal-close"
+                    aria-label="Tutup modal"
+                    onClick={() => !busy && setShowRegenerateModal(false)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="gpy-modal-body">
+                  API Key lama akan dihapus secara permanen dan diganti dengan API Key baru. Semua integrasi yang masih memakai API Key lama tidak akan bisa lagi mengakses endpoint.
+                </p>
+                <div className="gpy-modal-actions">
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-secondary"
+                    onClick={() => setShowRegenerateModal(false)}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-primary"
+                    onClick={() => createKey(true)}
+                    disabled={busy}
+                  >
+                    {busy ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <ApiKeySandboxCard
             apiKey={apiKey}

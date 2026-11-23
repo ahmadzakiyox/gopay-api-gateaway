@@ -1094,3 +1094,77 @@
   color: #20252a;
   word-break: break-word;
 }
+
+/* ============ Regenerate Modal ============ */
+.gpy-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(18, 22, 26, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.gpy-modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 18px 42px rgba(15, 20, 25, 0.16);
+}
+
+.gpy-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.gpy-modal-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #17191d;
+  letter-spacing: -0.015em;
+}
+
+.gpy-modal-close {
+  border: 0;
+  background: none;
+  color: #7d848e;
+  cursor: pointer;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+}
+
+.gpy-modal-close:hover {
+  background: #f0f3f5;
+  color: #20252a;
+}
+
+.gpy-modal-body {
+  margin: 0 0 16px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #555c65;
+}
+
+.gpy-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gpy-modal-actions .gpy-btn {
+  min-width: 96px;
+  justify-content: center;
+}
