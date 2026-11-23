@@ -255,7 +255,7 @@ export default function DocumentsPage({ request, user }) {
             </div>
 
             <p className="gpy-doc-note">
-              <code>trxId</code> dibuat otomatis oleh sistem, dan batas waktu pembayaran dikunci <strong>5 menit</strong> (<code>expiresIn: 300</code>) pada output JSON.
+              Waktu tunggu pembayaran <strong>5 menit</strong> (<code>expiresIn: 300</code>).
             </p>
 
             <div className="gpy-doc-param-list">
@@ -268,11 +268,6 @@ export default function DocumentsPage({ request, user }) {
                 <code>amount</code>
                 <span className="gpy-doc-req">wajib</span>
                 <p>Nominal dasar dalam Rupiah (integer &gt; 0). Sistem menambahkan penanda unik <code>surcharge</code> agar <code>payableAmount</code> unik.</p>
-              </div>
-              <div className="gpy-doc-param">
-                <code>idempotencyKey</code>
-                <span className="gpy-doc-opt">opsional</span>
-                <p>Kunci pencegahan duplikat request jika backend kamu melakukan retry. Default mengikuti <code>orderId</code>.</p>
               </div>
             </div>
 
@@ -365,7 +360,7 @@ export default function DocumentsPage({ request, user }) {
               <div className="gpy-doc-param">
                 <code>400</code>
                 <span className="gpy-doc-opt">Bad Request</span>
-                <p>Parameter <code>orderId</code>, <code>amount</code>, <code>idempotencyKey</code>, atau format <code>trxId</code> tidak valid.</p>
+                <p>Parameter <code>orderId</code>, <code>amount</code>, atau format <code>trxId</code> tidak valid.</p>
               </div>
               <div className="gpy-doc-param">
                 <code>401</code>
