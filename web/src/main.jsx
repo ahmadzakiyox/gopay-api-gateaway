@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Check, Clipboard, Code2, Eye, EyeOff, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
+import { Activity, Ban, BookOpen, Check, Clipboard, Code2, Eye, EyeOff, FileText, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
 import './gpy-management.css';
 import StudioTransactionDashboard from './StudioTransactionDashboard';
+import DocumentsPage from './DocumentsPage';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
@@ -472,6 +473,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
   const [amount, setAmount] = useState('1000');
   const [orderId, setOrderId] = useState(() => `api-test-${Date.now()}`);
   const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState('');
   const [responseJson, setResponseJson] = useState(null);
   const [payment, setPayment] = useState(null);
@@ -479,6 +481,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
   const [logs, setLogs] = useState([]);
   const [copiedBlock, setCopiedBlock] = useState('');
   const lastLoggedStatusRef = useRef('');
+  const activeTestKeyRef = useRef('');
 
   const addLog = (status, message) => {
     const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -541,6 +544,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
       if (!activeKey) {
         throw new Error('Buat atau tampilkan API Key terlebih dahulu di card atas.');
       }
+      activeTestKeyRef.current = activeKey;
 
       const currentOrderId = orderId.trim() || `api-test-${Date.now()}`;
       const bodyPayload = {
@@ -582,6 +586,39 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
     }
   };
 
+  const cancelTestPayment = async () => {
+    if (!payment || payment.status !== 'pending' || cancelling) return;
+    setCancelling(true);
+    setError('');
+    try {
+      const key = activeTestKeyRef.current || apiKey || (onRequireKey ? await onRequireKey() : '');
+      if (!key) throw new Error('API Key tidak ditemukan.');
+      addLog('request', `POST /api/v1/payments/${payment.trxId}/cancel`);
+      const res = await fetch(`${API}/api/v1/payments/${payment.trxId}/cancel`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      setResponseJson(data);
+      if (!res.ok || !data.payment) {
+        addLog('error', `HTTP ${res.status} - ${data.error || 'Gagal membatalkan transaksi'}`);
+        throw new Error(data.error || 'Gagal membatalkan transaksi');
+      }
+      lastLoggedStatusRef.current = data.payment.status;
+      setPayment(data.payment);
+      setSecondsLeft(0);
+      addLog('cancelled', 'CANCELLED — Transaksi dibatalkan. Polling otomatis dihentikan.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   useEffect(() => {
     if (!payment || payment.status !== 'pending' || secondsLeft <= 0) return undefined;
     let active = true;
@@ -589,7 +626,8 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
     const pollStatus = async () => {
       try {
         const headers = { 'content-type': 'application/json' };
-        if (apiKey) headers['x-api-key'] = apiKey;
+        const key = activeTestKeyRef.current || apiKey;
+        if (key) headers['x-api-key'] = key;
         const res = await fetch(`${API}/api/v1/payments/${payment.trxId}`, {
           credentials: 'include',
           headers
@@ -605,6 +643,9 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
           if (data.payment.status === 'paid') {
             const issuer = data.payment.providerTransaction?.issuer || 'QRIS';
             addLog('paid', `SUKSES (PAID) — Pembayaran Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} diterima via ${issuer}.`);
+          } else if (data.payment.status === 'cancelled') {
+            setSecondsLeft(0);
+            addLog('cancelled', 'CANCELLED — Transaksi dibatalkan. Polling otomatis dihentikan.');
           } else if (data.payment.status === 'expired') {
             addLog('expired', 'EXPIRED — Waktu pembayaran habis sebelum transaksi dibayar.');
           }
@@ -638,6 +679,8 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
     ? 'Contoh Output'
     : payment.status === 'paid'
     ? 'PAID / SUKSES'
+    : payment.status === 'cancelled'
+    ? 'CANCELLED'
     : payment.status === 'expired'
     ? 'EXPIRED'
     : 'PENDING';
@@ -738,7 +781,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
               <span className="gpy-sim-amount">Rp{Number(payment.payableAmount).toLocaleString('id-ID')}</span>
               <small>Nominal dasar Rp{Number(payment.baseAmount).toLocaleString('id-ID')} + penanda {payment.surcharge} • Order: {payment.orderId}</small>
             </div>
-            <span className={`gpy-pill ${payment.status === 'paid' ? 'connected' : payment.status === 'expired' ? 'is-expired' : 'is-pending'}`}>
+            <span className={`gpy-pill ${payment.status === 'paid' ? 'connected' : payment.status === 'cancelled' ? 'is-cancelled' : payment.status === 'expired' ? 'is-expired' : 'is-pending'}`}>
               {statusLabel}
             </span>
           </div>
@@ -778,6 +821,11 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
                 </button>
               </div>
             </div>
+          ) : payment.status === 'cancelled' ? (
+            <div className="gpy-sim-empty is-cancelled">
+              <Ban size={20} />
+              <p>Transaksi dibatalkan (CANCELLED). Polling otomatis dihentikan.</p>
+            </div>
           ) : (
             <div className="gpy-sim-empty">
               <X size={20} />
@@ -785,17 +833,29 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
             </div>
           )}
 
-          <button
-            type="button"
-            className="gpy-btn gpy-btn-secondary gpy-btn-block"
-            onClick={() => {
-              setOrderId(`api-test-${Date.now()}`);
-              setPayment(null);
-              setSecondsLeft(0);
-            }}
-          >
-            <RefreshCw size={14} /> Reset & Buat Order Baru
-          </button>
+          <div className="gpy-sandbox-footer-actions">
+            {payment.status === 'pending' && (
+              <button
+                type="button"
+                className="gpy-btn gpy-btn-cancel"
+                onClick={cancelTestPayment}
+                disabled={cancelling}
+              >
+                {cancelling ? <><Loader2 size={14} className="gpy-spin" /> Membatalkan…</> : <><Ban size={14} /> Cancel Transaksi</>}
+              </button>
+            )}
+            <button
+              type="button"
+              className="gpy-btn gpy-btn-secondary gpy-btn-block"
+              onClick={() => {
+                setOrderId(`api-test-${Date.now()}`);
+                setPayment(null);
+                setSecondsLeft(0);
+              }}
+            >
+              <RefreshCw size={14} /> Reset & Buat Order Baru
+            </button>
+          </div>
         </div>
       )}
 
@@ -1073,6 +1133,7 @@ function App() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/gpy-manager') return <GoPayManagement />;
   if (path === '/apikey') return <ApiKeyPage />;
+  if (path === '/documents') return <DocumentsPage request={request} user={auth.user || {}} />;
   return <StudioTransactionDashboard request={request} user={auth.user || {}} />;
 }
 

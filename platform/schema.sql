@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS payments (
   surcharge SMALLINT UNSIGNED NOT NULL,
   payable_amount BIGINT UNSIGNED NOT NULL,
   qris_payload TEXT NOT NULL,
-  status ENUM('pending','paid','expired') NOT NULL DEFAULT 'pending',
+  status ENUM('pending','paid','expired','cancelled') NOT NULL DEFAULT 'pending',
   provider_transaction_id VARCHAR(128) NULL,
   provider_order_id VARCHAR(128) NULL,
   provider_payment_type VARCHAR(64) NULL,

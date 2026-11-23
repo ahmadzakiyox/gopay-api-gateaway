@@ -174,6 +174,8 @@ function safePaymentStatus(row) {
 async function pollMerchantPayments(userId) {
   const connection = await pool.getConnection();
   try {
+    const [pendingRows] = await connection.execute("SELECT 1 FROM payments WHERE user_id=? AND status='pending' AND expires_at > NOW(3) LIMIT 1", [userId]);
+    if (!pendingRows.length) return 0;
     const [accounts] = await connection.execute("SELECT merchant_id, encrypted_session FROM gopay_accounts WHERE user_id=? AND status='connected'", [userId]);
     if (!accounts[0]?.merchant_id || !accounts[0]?.encrypted_session) return 0;
     const session = JSON.parse(decrypt(accounts[0].encrypted_session));
@@ -372,6 +374,53 @@ app.post('/api/v1/payments', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function cancelPaymentForUser(userId, trxId) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [[existing]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=? LIMIT 1 FOR UPDATE', [trxId, userId]);
+    if (!existing) {
+      await connection.rollback();
+      const err = new Error('Payment tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+    if (existing.status === 'paid') {
+      await connection.rollback();
+      const err = new Error('Transaksi sudah dibayar dan tidak dapat dibatalkan');
+      err.statusCode = 409;
+      throw err;
+    }
+    if (existing.status === 'expired') {
+      await connection.rollback();
+      const err = new Error('Transaksi sudah kedaluwarsa');
+      err.statusCode = 409;
+      throw err;
+    }
+    if (existing.status === 'cancelled') {
+      await connection.commit();
+      return existing;
+    }
+    if (new Date(existing.expires_at).getTime() <= Date.now()) {
+      await connection.execute("UPDATE payments SET status='expired' WHERE id=? AND user_id=? AND status='pending'", [trxId, userId]);
+      await connection.commit();
+      const err = new Error('Transaksi sudah kedaluwarsa');
+      err.statusCode = 409;
+      throw err;
+    }
+    await connection.execute("UPDATE payments SET status='cancelled', reservation_until=NOW(3) WHERE id=? AND user_id=? AND status='pending'", [trxId, userId]);
+    const [[updated]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=? LIMIT 1', [trxId, userId]);
+    await connection.commit();
+    await audit(userId, 'payment_cancelled', { trxId: updated.id, orderId: updated.order_id, amount: Number(updated.payable_amount) });
+    return updated;
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 app.get('/api/v1/payments/:trxId', apiKeyAuth, async (req, res) => {
   if (!/^[0-9a-f-]{36}$/i.test(req.params.trxId)) return fail(res, 400, 'trxId tidak valid');
   try {
@@ -380,6 +429,16 @@ app.get('/api/v1/payments/:trxId', apiKeyAuth, async (req, res) => {
     return res.json({ success: true, payment: safePaymentStatus(payment) });
   } catch (error) {
     return fail(res, 502, 'Gagal mengecek status transaksi GoPay');
+  }
+});
+
+app.post('/api/v1/payments/:trxId/cancel', apiKeyAuth, async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.trxId)) return fail(res, 400, 'trxId tidak valid');
+  try {
+    const payment = await cancelPaymentForUser(req.apiUserId, req.params.trxId);
+    return res.json({ success: true, payment: safePaymentStatus(payment) });
+  } catch (error) {
+    return fail(res, error.statusCode || 500, error.statusCode ? error.message : 'Gagal membatalkan transaksi');
   }
 });
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Activity, WalletCards, KeyRound } from 'lucide-react';
+import { LogOut, Activity, WalletCards, KeyRound, FileText } from 'lucide-react';
 import './Header.css';
 
 export function Header({ onLogout, managementMode = false, user = null }) {
@@ -85,6 +85,10 @@ export function Header({ onLogout, managementMode = false, user = null }) {
         <a href="/apikey" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <KeyRound size={20} />
           <span>Api Key</span>
+        </a>
+        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <FileText size={20} />
+          <span>Doc</span>
         </a>
         <div className="mobile-menu-profile">
           <span className="nav-profile-avatar">{avatarLetter}</span>

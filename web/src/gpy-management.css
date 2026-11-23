@@ -1243,3 +1243,232 @@
   min-width: 96px;
   justify-content: center;
 }
+
+/* ============ Cancelled Status & Sandbox Footer ============ */
+.gpy-pill.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.gpy-status-dot.is-cancelled {
+  color: #ea580c;
+}
+
+.gpy-status-dot.is-cancelled::before {
+  background: #ea580c;
+}
+
+.gpy-log-badge.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.gpy-sim-empty.is-cancelled {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.gpy-sandbox-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gpy-btn-cancel {
+  width: 100%;
+  justify-content: center;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fdba74;
+}
+
+.gpy-btn-cancel:hover:not(:disabled) {
+  background: #ffedd5;
+  border-color: #fb923c;
+}
+
+/* ============ Documents Page ============ */
+.gpy-doc-steps {
+  margin: 4px 0 12px;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #495059;
+}
+
+.gpy-doc-steps strong {
+  color: #1f2429;
+  font-weight: 600;
+}
+
+.gpy-doc-steps code,
+.gpy-doc-note code,
+.gpy-doc-param p code {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  background: #f2f4f7;
+  color: #1f2429;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.gpy-doc-link {
+  color: #285846;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.gpy-doc-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fb;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: 8px 11px;
+  margin: 4px 0 12px;
+  overflow-x: auto;
+}
+
+.gpy-doc-endpoint code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #1f2429;
+  white-space: nowrap;
+}
+
+.gpy-doc-method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.gpy-doc-method.is-post {
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+.gpy-doc-method.is-get {
+  background: #eef4fb;
+  color: #1d4ed8;
+}
+
+.gpy-doc-method.is-cancel {
+  background: #fff4ec;
+  color: #ea580c;
+}
+
+.gpy-doc-note {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #555c65;
+}
+
+.gpy-doc-param-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gpy-doc-param {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  background: #fafbfc;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+}
+
+.gpy-doc-param > code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f2429;
+}
+
+.gpy-doc-req,
+.gpy-doc-opt {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.gpy-doc-req {
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+.gpy-doc-opt {
+  background: #f1f3f5;
+  color: #626a73;
+}
+
+.gpy-doc-param p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #555c65;
+}
+
+.gpy-doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+
+.gpy-doc-tab {
+  border: 1px solid var(--studio-border);
+  background: #ffffff;
+  color: #555c65;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gpy-doc-tab.is-active.is-paid {
+  background: #eef7f2;
+  color: #166534;
+  border-color: #b7dec9;
+}
+
+.gpy-doc-tab.is-active.is-pending {
+  background: #fef9ec;
+  color: #92400e;
+  border-color: #f3d68a;
+}
+
+.gpy-doc-tab.is-active.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fdba74;
+}
+
+.gpy-doc-tab.is-active.is-expired {
+  background: #fdf2f0;
+  color: #991b1b;
+  border-color: #f5c2ba;
+}

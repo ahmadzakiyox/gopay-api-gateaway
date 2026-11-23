@@ -10,7 +10,7 @@ function parseFilters(query, now = new Date()) {
   const status = query.status || 'all';
   const search = query.search || '';
   const page = Number(query.page || 1);
-  if (days < 1 || days > 366 || !['all','pending','paid','expired'].includes(status) || typeof search !== 'string' || search.length > 128 || !Number.isSafeInteger(page) || page < 1 || page > 100000) invalid();
+  if (days < 1 || days > 366 || !['all','pending','paid','expired','cancelled'].includes(status) || typeof search !== 'string' || search.length > 128 || !Number.isSafeInteger(page) || page < 1 || page > 100000) invalid();
   const sqlDate = (ms) => new Date(ms).toISOString().slice(0, 23).replace('T', ' ');
   return { from, to, days, status, search: search.trim(), page, pageSize: 20, start: sqlDate(Date.parse(`${from}T00:00:00+07:00`)), end: sqlDate(Date.parse(`${to}T00:00:00+07:00`) + DAY) };
 }
@@ -18,7 +18,7 @@ async function getAnalytics(pool, userId, f) {
   // paid_at is persisted as UTC by toMysqlDateTime; convert only for WIB buckets.
   const [[summary]] = await pool.execute(`SELECT
     SUM(status='paid') AS paid, SUM(status='pending') AS pending,
-    SUM(status='expired') AS expired
+    SUM(status='expired') AS expired, SUM(status='cancelled') AS cancelled
     FROM payments WHERE user_id=? AND created_at>=? AND created_at<?`, [userId,f.start,f.end]);
   const [rows] = await pool.execute(`SELECT DATE_FORMAT(DATE_ADD(paid_at, INTERVAL 7 HOUR),'%Y-%m-%d') AS day,
     SUM(payable_amount) AS amount, COUNT(*) AS count FROM payments
@@ -28,7 +28,7 @@ async function getAnalytics(pool, userId, f) {
     const day=new Date(Date.parse(f.from)+i*DAY).toISOString().slice(0,10);
     const r=byDay.get(day);return {day,amount:Number(r?.amount||0),count:Number(r?.count||0)};
   });
-  return {summary:{paid:Number(summary.paid||0),pending:Number(summary.pending||0),expired:Number(summary.expired||0),amount:series.reduce((sum,r)=>sum+r.amount,0)},series,timezone:'Asia/Jakarta'};
+  return {summary:{paid:Number(summary.paid||0),pending:Number(summary.pending||0),expired:Number(summary.expired||0),cancelled:Number(summary.cancelled||0),amount:series.reduce((sum,r)=>sum+r.amount,0)},series,timezone:'Asia/Jakarta'};
 }
 async function getTransactions(pool,userId,f) {
   let where='user_id=? AND created_at>=? AND created_at<?';
