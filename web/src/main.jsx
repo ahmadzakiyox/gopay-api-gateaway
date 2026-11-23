@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Check, Clipboard, Code2, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
+import { Activity, Check, Clipboard, Code2, Eye, EyeOff, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
@@ -837,6 +837,8 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
 function ApiKeyPage() {
   const [data, setData] = useState(null);
   const [apiKey, setApiKey] = useState('');
+  const [keyVisible, setKeyVisible] = useState(false);
+  const [copiedTarget, setCopiedTarget] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -862,6 +864,7 @@ function ApiKeyPage() {
     try {
       const result = await request('/api/api-key', { method: 'POST' });
       setApiKey(result.apiKey.key);
+      setKeyVisible(true);
       setNotice(isRegenerate ? 'API key lama dihapus dan diganti dengan API key baru.' : 'API key siap digunakan.');
       setShowRegenerateModal(false);
       await load();
@@ -874,7 +877,7 @@ function ApiKeyPage() {
     }
   };
 
-  const revealKey = async () => {
+  const fetchRealKey = async () => {
     setError('');
     try {
       const result = await request('/api/api-key');
@@ -886,14 +889,43 @@ function ApiKeyPage() {
     }
   };
 
+  const toggleKeyVisibility = async () => {
+    if (keyVisible) {
+      setKeyVisible(false);
+      return;
+    }
+    if (apiKey) {
+      setKeyVisible(true);
+      return;
+    }
+    const fetched = await fetchRealKey();
+    if (fetched) setKeyVisible(true);
+  };
+
+  const copyApiKey = async () => {
+    let realKey = apiKey;
+    if (!realKey && data?.apiKey) {
+      realKey = await fetchRealKey();
+    }
+    if (!realKey) return;
+    await navigator.clipboard.writeText(realKey);
+    setCopiedTarget('apikey');
+    setTimeout(() => setCopiedTarget((curr) => (curr === 'apikey' ? '' : curr)), 1600);
+    setNotice('API Key disalin ke clipboard.');
+  };
+
   const ensureKeyForTest = async () => {
     if (apiKey) return apiKey;
-    if (data?.apiKey) return await revealKey();
+    if (data?.apiKey) return await fetchRealKey();
     return await createKey();
   };
 
-  const copy = async (text, label = 'Disalin ke clipboard.') => {
+  const copy = async (text, label = 'Disalin ke clipboard.', target = '') => {
     await navigator.clipboard.writeText(text);
+    if (target) {
+      setCopiedTarget(target);
+      setTimeout(() => setCopiedTarget((curr) => (curr === target ? '' : curr)), 1600);
+    }
     setNotice(label);
   };
 
@@ -924,16 +956,50 @@ function ApiKeyPage() {
             <label className="gpy-label">Endpoint API</label>
             <div className="gpy-key-box" style={{ marginTop: 6 }}>
               <code>{endpointBase}</code>
-              <button aria-label="Salin Endpoint API" onClick={() => copy(endpointBase, 'Endpoint API disalin ke clipboard.')}>
-                <Clipboard size={15} />
-              </button>
+              <div className="gpy-key-actions">
+                <button
+                  type="button"
+                  className="gpy-key-icon-btn"
+                  aria-label="Salin Endpoint API"
+                  onClick={() => copy(endpointBase, 'Endpoint API disalin ke clipboard.', 'endpoint')}
+                >
+                  {copiedTarget === 'endpoint' ? <Check size={15} /> : <Clipboard size={15} />}
+                </button>
+              </div>
             </div>
 
             <label className="gpy-label">API Key</label>
             <div className="gpy-key-box" style={{ marginTop: 6 }}>
-              <code>{apiKey || (data.apiKey ? `${data.apiKey.key_prefix}••••••••••••` : 'Belum dibuat')}</code>
-              {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey, 'API Key disalin ke clipboard.')}><Clipboard size={15} /></button>}
-              {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
+              <code className={`gpy-key-text ${keyVisible ? 'is-revealed' : 'is-masked'}`}>
+                {keyVisible && apiKey
+                  ? apiKey
+                  : data.apiKey
+                  ? `${data.apiKey.key_prefix}••••••••••••`
+                  : 'Belum dibuat'}
+              </code>
+              {data.apiKey && (
+                <div className="gpy-key-actions">
+                  <button
+                    type="button"
+                    className={`gpy-key-icon-btn gpy-eye-btn ${keyVisible ? 'is-open' : ''}`}
+                    aria-label={keyVisible ? 'Sembunyikan API key' : 'Tampilkan API key'}
+                    onClick={toggleKeyVisibility}
+                  >
+                    <span className="gpy-eye-stack">
+                      <EyeOff size={15} className="gpy-eye-icon gpy-eye-closed" />
+                      <Eye size={15} className="gpy-eye-icon gpy-eye-open" />
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="gpy-key-icon-btn"
+                    aria-label="Salin API key"
+                    onClick={copyApiKey}
+                  >
+                    {copiedTarget === 'apikey' ? <Check size={15} /> : <Clipboard size={15} />}
+                  </button>
+                </div>
+              )}
             </div>
             <div className="gpy-actions-row" style={{ justifyContent: 'center' }}>
               {data.apiKey ? (
@@ -988,7 +1054,7 @@ function ApiKeyPage() {
           )}
 
           <ApiKeySandboxCard
-            apiKey={apiKey}
+            apiKey={keyVisible ? apiKey : ''}
             apiKeyPrefix={data.apiKey?.key_prefix}
             onRequireKey={ensureKeyForTest}
           />

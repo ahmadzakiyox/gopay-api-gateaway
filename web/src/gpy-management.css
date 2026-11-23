@@ -360,6 +360,81 @@
   word-break: break-all;
 }
 
+.gpy-key-text {
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1), filter 0.22s cubic-bezier(0.22, 1, 0.36, 1), transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gpy-key-text.is-masked {
+  opacity: 0.88;
+}
+
+.gpy-key-text.is-revealed {
+  opacity: 1;
+}
+
+.gpy-key-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gpy-key-icon-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #285846;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.16s ease;
+}
+
+.gpy-key-icon-btn:hover {
+  background: #e9f1ec;
+}
+
+.gpy-key-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.gpy-eye-stack {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+}
+
+.gpy-eye-icon {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gpy-eye-closed {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.gpy-eye-open {
+  opacity: 0;
+  transform: scale(0.72) rotate(-12deg);
+}
+
+.gpy-eye-btn.is-open .gpy-eye-closed {
+  opacity: 0;
+  transform: scale(0.72) rotate(12deg);
+}
+
+.gpy-eye-btn.is-open .gpy-eye-open {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
 .gpy-key-box button {
   border: 0;
   background: none;
