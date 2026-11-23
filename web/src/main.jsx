@@ -935,7 +935,7 @@ function ApiKeyPage() {
               {apiKey && <button aria-label="Salin API key" onClick={() => copy(apiKey, 'API Key disalin ke clipboard.')}><Clipboard size={15} /></button>}
               {!apiKey && data.apiKey && <button onClick={revealKey}>Lihat</button>}
             </div>
-            <div className="gpy-actions-row">
+            <div className="gpy-actions-row" style={{ justifyContent: 'center' }}>
               {data.apiKey ? (
                 <button className="gpy-btn gpy-btn-secondary" onClick={() => setShowRegenerateModal(true)} disabled={busy}>
                   <RefreshCw size={14} /> Regenerate API Key
@@ -946,7 +946,6 @@ function ApiKeyPage() {
                 </button>
               )}
             </div>
-            <p className="gpy-warning-text">Jangan bagikan key ini ke publik.</p>
           </section>
 
           {showRegenerateModal && (
