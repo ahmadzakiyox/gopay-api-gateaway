@@ -192,8 +192,15 @@
 }
 
 .gpy-status-val strong.gpy-status-active {
-  color: #1e5a43;
-  font-weight: 700;
+  display: inline-block;
+  background: rgba(46, 155, 111, 0.13);
+  color: #34a97b;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  line-height: 1.35;
 }
 
 .gpy-pill {
