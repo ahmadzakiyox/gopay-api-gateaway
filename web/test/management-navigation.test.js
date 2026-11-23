@@ -7,6 +7,6 @@ const mainPath = fileURLToPath(new URL('../src/main.jsx', import.meta.url));
 const source = readFileSync(mainPath, 'utf8');
 
 test('GoPay Management imports the navigation component it renders', () => {
-  assert.match(source, /import\s*\{[^}]*\bWorkspaceNav\b[^}]*\}\s*from\s*['"]\.\/TransactionDashboard['"]/);
-  assert.match(source, /<WorkspaceNav\s+management\s+onLogout=\{logout\}\s*\/>/);
+  assert.match(source, /import\s*\{[^}]*\bHeader\b[^}]*\}\s*from\s*['"]\.\/components\/Header['"]/);
+  assert.match(source, /<Header\s+management\s+onLogout=\{logout\}\s*\/>/);
 });

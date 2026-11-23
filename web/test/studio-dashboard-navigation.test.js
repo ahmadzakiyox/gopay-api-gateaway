@@ -7,7 +7,7 @@ const dashboardPath = fileURLToPath(new URL('../src/StudioTransactionDashboard.j
 const source = readFileSync(dashboardPath, 'utf8');
 
 test('Studio dashboard uses an explicitly imported app navigation component', () => {
-  assert.match(source, /import\s*\{\s*WorkspaceNav\s*\}\s*from\s*['"]\.\/TransactionDashboard['"]/);
-  assert.match(source, /<WorkspaceNav\s+onLogout=\{logout\}\s*\/>/);
+  assert.match(source, /import\s*\{\s*Header\s*\}\s*from\s*['"]\.\/components\/Header['"]/);
+  assert.match(source, /<Header\s+onLogout=\{logout\}\s*\/>/);
   assert.doesNotMatch(source, /<Navigation(?:\s|\/|>)/);
 });
