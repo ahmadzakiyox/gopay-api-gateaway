@@ -164,26 +164,45 @@ function SimulateCard({ onDone }) {
   );
 }
 
+function decodeWithScale(img, scale, smoothing) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = smoothing;
+  if (smoothing) ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  return jsQR(data.data, data.width, data.height, { inversionAttempts: 'attemptBoth' });
+}
+
 function readQrisFromImage(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       try {
-        const canvas = document.createElement('canvas');
-        const maxSide = 1400;
-        const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-        const scale = ratio < 1 ? ratio : Math.min(3, Math.max(1, 900 / Math.max(img.naturalWidth, img.naturalHeight)));
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const result = jsQR(data.data, data.width, data.height, { inversionAttempts: 'attemptBoth' });
+        const longest = Math.max(img.naturalWidth, img.naturalHeight);
+        const attempts = [];
+        // Pass 1: cap large photos (downscale smooths sensor noise).
+        if (longest > 1400) attempts.push([1400 / longest, true]);
+        // Pass 2: native resolution.
+        attempts.push([1, true]);
+        // Pass 3: upscale small/screenshot QR codes with crisp edges.
+        if (longest < 700) attempts.push([Math.min(3, 900 / longest), false]);
+        // Pass 4: aggressive downscale for very large images.
+        if (longest > 2400) attempts.push([900 / longest, true]);
+
+        let decoded = null;
+        for (const [scale, smoothing] of attempts) {
+          decoded = decodeWithScale(img, scale, smoothing);
+          if (decoded && decoded.data) break;
+        }
         URL.revokeObjectURL(url);
-        if (!result || !result.data) return reject(new Error('QR code tidak terdeteksi. Pastikan seluruh kode terlihat jelas dan tidak terpotong.'));
-        resolve(result.data);
+        if (!decoded || !decoded.data) {
+          return reject(new Error('QR code tidak terdeteksi. Pastikan seluruh kode terlihat jelas dan tidak terpotong.'));
+        }
+        resolve(decoded.data);
       } catch (e) {
         URL.revokeObjectURL(url);
         reject(new Error('Gambar tidak bisa dibaca. Coba foto lain.'));
