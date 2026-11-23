@@ -6,19 +6,20 @@ import { Footer } from './components/Footer';
 const BASE_URL = 'https://api-qris.alternat.my.id';
 
 const CREATE_REQ_JSON = `{
+  "orderId": "INV-20261124-001",
   "amount": 10000
 }`;
 
 const CREATE_CURL = `curl -X POST "${BASE_URL}/api/v1/payments" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: gpg_YOUR_API_KEY" \\
-  -d '${JSON.stringify({ amount: 10000 })}'`;
+  -d '${JSON.stringify({ orderId: 'INV-20261124-001', amount: 10000 })}'`;
 
 const CREATE_RES_JSON = `{
   "success": true,
   "payment": {
     "trxId": "019a4f20-8c1b-7000-8000-000000000001",
-    "orderId": "trx_a8f3c91d2e7b",
+    "orderId": "INV-20261124-001",
     "status": "pending",
     "baseAmount": 10000,
     "surcharge": 35,
@@ -38,7 +39,7 @@ const STATUS_RESPONSES = {
   "success": true,
   "payment": {
     "trxId": "019a4f20-8c1b-7000-8000-000000000001",
-    "orderId": "trx_a8f3c91d2e7b",
+    "orderId": "INV-20261124-001",
     "status": "pending",
     "baseAmount": 10000,
     "surcharge": 35,
@@ -53,7 +54,7 @@ const STATUS_RESPONSES = {
   "success": true,
   "payment": {
     "trxId": "019a4f20-8c1b-7000-8000-000000000001",
-    "orderId": "trx_a8f3c91d2e7b",
+    "orderId": "INV-20261124-001",
     "status": "paid",
     "baseAmount": 10000,
     "surcharge": 35,
@@ -74,7 +75,7 @@ const STATUS_RESPONSES = {
   "success": true,
   "payment": {
     "trxId": "019a4f20-8c1b-7000-8000-000000000001",
-    "orderId": "trx_a8f3c91d2e7b",
+    "orderId": "INV-20261124-001",
     "status": "cancelled",
     "baseAmount": 10000,
     "surcharge": 35,
@@ -88,7 +89,7 @@ const STATUS_RESPONSES = {
   "success": true,
   "payment": {
     "trxId": "019a4f20-8c1b-7000-8000-000000000001",
-    "orderId": "trx_a8f3c91d2e7b",
+    "orderId": "INV-20261124-001",
     "status": "expired",
     "baseAmount": 10000,
     "surcharge": 35,
@@ -113,15 +114,15 @@ const ERROR_RES_JSON = `{
 const NODE_EXAMPLE = `const API_BASE = "${BASE_URL}";
 const API_KEY = process.env.ALTERNATE_PAY_API_KEY;
 
-// 1. Buat tagihan QRIS (orderId & batas waktu 5 menit otomatis dari sistem)
-async function createPayment(amount) {
+// 1. Buat tagihan QRIS (trxId & batas waktu 5 menit otomatis dari sistem)
+async function createPayment(orderId, amount) {
   const res = await fetch(\`\${API_BASE}/api/v1/payments\`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": API_KEY
     },
-    body: JSON.stringify({ amount })
+    body: JSON.stringify({ orderId, amount })
   });
   return res.json();
 }
@@ -254,10 +255,15 @@ export default function DocumentsPage({ request, user }) {
             </div>
 
             <p className="gpy-doc-note">
-              <code>orderId</code> (format <code>trx_...</code>) dan batas waktu pembayaran <strong>5 menit</strong> (<code>expiresIn: 300</code>) dibuat otomatis oleh sistem dan dikembalikan pada output JSON.
+              <code>trxId</code> dibuat otomatis oleh sistem, dan batas waktu pembayaran dikunci <strong>5 menit</strong> (<code>expiresIn: 300</code>) pada output JSON.
             </p>
 
             <div className="gpy-doc-param-list">
+              <div className="gpy-doc-param">
+                <code>orderId</code>
+                <span className="gpy-doc-req">wajib</span>
+                <p>ID pesanan/invoice unik dari backend kamu (string, maks 128 karakter).</p>
+              </div>
               <div className="gpy-doc-param">
                 <code>amount</code>
                 <span className="gpy-doc-req">wajib</span>
@@ -266,7 +272,7 @@ export default function DocumentsPage({ request, user }) {
               <div className="gpy-doc-param">
                 <code>idempotencyKey</code>
                 <span className="gpy-doc-opt">opsional</span>
-                <p>Kunci pencegahan duplikat request jika backend kamu melakukan retry.</p>
+                <p>Kunci pencegahan duplikat request jika backend kamu melakukan retry. Default mengikuti <code>orderId</code>.</p>
               </div>
             </div>
 
@@ -359,7 +365,7 @@ export default function DocumentsPage({ request, user }) {
               <div className="gpy-doc-param">
                 <code>400</code>
                 <span className="gpy-doc-opt">Bad Request</span>
-                <p>Parameter <code>amount</code>, <code>idempotencyKey</code>, atau format <code>trxId</code> tidak valid.</p>
+                <p>Parameter <code>orderId</code>, <code>amount</code>, <code>idempotencyKey</code>, atau format <code>trxId</code> tidak valid.</p>
               </div>
               <div className="gpy-doc-param">
                 <code>401</code>
