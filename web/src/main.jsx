@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Check, Clipboard, KeyRound, Link2, LogOut, QrCode, RefreshCw, ShieldCheck, Smartphone, WalletCards } from 'lucide-react';
+import { Activity, Check, Clipboard, KeyRound, Link2, LogOut, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, User, Hash, WalletCards } from 'lucide-react';
 import './style.css';
 import './studio-dashboard.css';
 import './gpy-management.css';
@@ -247,10 +247,19 @@ function GoPayManagement() {
               <div className="gpy-panel-head">
                 <div>
                   <p className="gpy-section-label">01 / CONNECTION</p>
-                  <h3>GoPay Merchant</h3>
+                  <h3>{data.gopay.merchant_name || 'GoPay Merchant'}</h3>
                 </div>
                 <Smartphone size={18} />
               </div>
+              {data.gopay.merchant_name && (
+                <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
+              )}
+              {data.gopay.owner_name && (
+                <Row icon={User} label="Pemilik" value={data.gopay.owner_name} />
+              )}
+              {data.gopay.merchant_id && (
+                <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
+              )}
               <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} status={data.gopay.status} />
               <Row icon={ShieldCheck} label="Session" value={data.gopay.status === 'connected' ? 'Token aktif' : 'Belum terhubung'} />
               {data.gopay.status !== 'connected' && !otpSent && (

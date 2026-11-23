@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS gopay_accounts (
   user_id BIGINT UNSIGNED NOT NULL UNIQUE,
   phone_number VARCHAR(32) NULL,
   merchant_id VARCHAR(255) NULL,
+  merchant_name VARCHAR(255) NULL,
+  owner_name VARCHAR(255) NULL,
   encrypted_session TEXT NULL,
   status ENUM('disconnected','otp_pending','connected','error') NOT NULL DEFAULT 'disconnected',
   last_error VARCHAR(500) NULL,

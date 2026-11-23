@@ -79,8 +79,22 @@ async function verifyOtp(userId, otp) {
     const merchant = profile.merchant || profile.merchants?.[0] || profile.restaurants?.[0];
     const merchantId = merchant?.id || profile.merchant_id || data.merchant_id;
     if (!merchantId) throw new Error('Merchant GoPay tidak ditemukan');
+    const merchantName = merchant?.outlet_name || merchant?.name || null;
+    const ownerName = profile.user?.full_name || profile.user?.name || null;
     pending.delete(userId);
-    return { phoneNumber: `+62${item.phone}`, merchantId: String(merchantId), session: { access_token: data.access_token, refresh_token: data.refresh_token, device_id: item.deviceId, phone_number: `+62${item.phone}`, expires_at: Date.now() + Number(data.expires_in || 86400) * 1000 } };
+    return {
+      phoneNumber: `+62${item.phone}`,
+      merchantId: String(merchantId),
+      merchantName: merchantName ? String(merchantName) : null,
+      ownerName: ownerName ? String(ownerName) : null,
+      session: {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        device_id: item.deviceId,
+        phone_number: `+62${item.phone}`,
+        expires_at: Date.now() + Number(data.expires_in || 86400) * 1000
+      }
+    };
   } catch (error) {
     if (error.response?.status >= 400 && error.response?.status < 500) pending.delete(userId);
     throw new Error(error.response?.data?.message || error.message || 'Verifikasi GoPay gagal');
@@ -142,4 +156,23 @@ async function listTransactions(session, { merchantId, startTime, endTime }) {
   return { transactions, session: activeSession };
 }
 
-module.exports = { requestOtp, verifyOtp, listTransactions, refreshSession };
+async function fetchMerchantProfile(session) {
+  if (!session?.access_token) return null;
+  try {
+    const response = await axios.get(PROFILE_URL, { headers: headers(session.device_id, session.access_token), timeout: 15000 });
+    const profile = responseData(response);
+    const merchant = profile.merchant || profile.merchants?.[0] || profile.restaurants?.[0];
+    const merchantId = merchant?.id || profile.merchant_id;
+    const merchantName = merchant?.outlet_name || merchant?.name || null;
+    const ownerName = profile.user?.full_name || profile.user?.name || null;
+    return {
+      merchantId: merchantId ? String(merchantId) : null,
+      merchantName: merchantName ? String(merchantName) : null,
+      ownerName: ownerName ? String(ownerName) : null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+module.exports = { requestOtp, verifyOtp, listTransactions, refreshSession, fetchMerchantProfile };

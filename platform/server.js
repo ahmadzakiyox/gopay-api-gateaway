@@ -13,7 +13,7 @@ const { z } = require('zod');
 const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
-const { requestOtp, verifyOtp, listTransactions } = require('./gopayAdapter');
+const { requestOtp, verifyOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
 
@@ -248,10 +248,33 @@ app.post('/api/auth/logout', async (req, res) => { if (req.cookies.user_session)
 require('./transactionReports').registerTransactionReports(app, pool, requireUser);
 
 app.get('/api/dashboard', requireUser, async (req, res) => {
-  const [gopay] = await pool.execute("SELECT phone_number, merchant_id, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
+  const [gopay] = await pool.execute("SELECT phone_number, merchant_id, merchant_name, owner_name, encrypted_session, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
   const [qris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM qris_configs WHERE user_id=?', [req.user.id]);
   const [key] = await pool.execute('SELECT key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
-  res.json({ success: true, user: req.user, gopay: gopay[0] || { status: 'disconnected' }, qris: qris[0] ? { configured: true, isValid: Boolean(qris[0].is_valid), updatedAt: qris[0].updated_at, staticQris: qris[0].static_qris } : { configured: false }, apiKey: key[0] || null });
+
+  let gopayData = gopay[0] || { status: 'disconnected' };
+  // If connected but merchant_name / owner_name is not yet populated, backfill once from session
+  if (gopayData.status === 'connected' && (!gopayData.merchant_name || !gopayData.owner_name) && gopayData.encrypted_session) {
+    try {
+      const session = JSON.parse(decrypt(gopayData.encrypted_session));
+      const profile = await fetchMerchantProfile(session);
+      if (profile && (profile.merchantName || profile.ownerName)) {
+        await pool.execute(
+          'UPDATE gopay_accounts SET merchant_name = COALESCE(?, merchant_name), owner_name = COALESCE(?, owner_name) WHERE user_id = ?',
+          [profile.merchantName, profile.ownerName, req.user.id]
+        );
+        gopayData.merchant_name = profile.merchantName || gopayData.merchant_name;
+        gopayData.owner_name = profile.ownerName || gopayData.owner_name;
+      }
+    } catch (e) {
+      // non-blocking
+    }
+  }
+
+  // Remove encrypted_session from response payload
+  const { encrypted_session, ...sanitizedGopay } = gopayData;
+
+  res.json({ success: true, user: req.user, gopay: sanitizedGopay, qris: qris[0] ? { configured: true, isValid: Boolean(qris[0].is_valid), updatedAt: qris[0].updated_at, staticQris: qris[0].static_qris } : { configured: false }, apiKey: key[0] || null });
 });
 
 app.get('/api/api-key', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT encrypted_key, key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'API key belum dibuat'); res.json({ success: true, apiKey: { key: decrypt(rows[0].encrypted_key), prefix: rows[0].key_prefix, createdAt: rows[0].created_at, rotatedAt: rows[0].rotated_at } }); });
@@ -391,9 +414,12 @@ app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
   if (!parsed.success) return fail(res, 400, 'Kirim kode OTP sebagai teks');
   try {
     const result = await verifyOtp(req.user.id, parsed.data.otp);
-    await pool.execute('UPDATE gopay_accounts SET phone_number=?, merchant_id=?, encrypted_session=?, status=\'connected\', last_error=NULL WHERE user_id=?', [result.phoneNumber, result.merchantId, encrypt(JSON.stringify(result.session)), req.user.id]);
-    await audit(req.user.id, 'gopay_connected', { merchantId: result.merchantId });
-    return res.json({ success: true, status: 'connected', merchantId: result.merchantId, phoneNumber: result.phoneNumber });
+    await pool.execute(
+      'UPDATE gopay_accounts SET phone_number=?, merchant_id=?, merchant_name=?, owner_name=?, encrypted_session=?, status=\'connected\', last_error=NULL WHERE user_id=?',
+      [result.phoneNumber, result.merchantId, result.merchantName, result.ownerName, encrypt(JSON.stringify(result.session)), req.user.id]
+    );
+    await audit(req.user.id, 'gopay_connected', { merchantId: result.merchantId, merchantName: result.merchantName });
+    return res.json({ success: true, status: 'connected', merchantId: result.merchantId, merchantName: result.merchantName, ownerName: result.ownerName, phoneNumber: result.phoneNumber });
   } catch (error) {
     await pool.execute('UPDATE gopay_accounts SET status=\'error\', last_error=? WHERE user_id=?', [error.message.slice(0, 500), req.user.id]);
     return fail(res, 502, error.message);
