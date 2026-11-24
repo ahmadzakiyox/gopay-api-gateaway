@@ -52,9 +52,17 @@ function expire(userId) {
   if (item && item.expiresAt <= Date.now()) pending.delete(userId);
 }
 
+function clearPendingOtp(userId) {
+  pending.delete(userId);
+}
+
 async function requestOtp(userId, phoneNumber) {
   expire(userId);
-  if (pending.has(userId)) throw new Error('OTP sebelumnya masih aktif. Tunggu sampai kedaluwarsa.');
+  if (pending.has(userId)) {
+    const err = new Error('OTP sebelumnya masih aktif. Silakan masukkan kode OTP yang sudah dikirim atau tunggu hingga kedaluwarsa.');
+    err.statusCode = 429;
+    throw err;
+  }
   const phone = normalizePhone(phoneNumber);
   const deviceId = crypto.randomUUID();
   const response = await axios.post(OTP_URL, { client_id: CLIENT_ID, phone_number: phone, country_code: '62' }, { headers: headers(deviceId), timeout: 15000 });
@@ -175,4 +183,4 @@ async function fetchMerchantProfile(session) {
   }
 }
 
-module.exports = { requestOtp, verifyOtp, listTransactions, refreshSession, fetchMerchantProfile };
+module.exports = { requestOtp, verifyOtp, clearPendingOtp, listTransactions, refreshSession, fetchMerchantProfile };

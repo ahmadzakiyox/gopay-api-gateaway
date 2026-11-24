@@ -224,6 +224,9 @@ function GoPayManagement() {
       const result = await request('/api/dashboard');
       setData(result);
       setPhone(result.gopay.phone_number || '');
+      if (result.gopay.status === 'otp_pending') {
+        setOtpSent(true);
+      }
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
       else setError(e.message);

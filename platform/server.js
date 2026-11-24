@@ -13,7 +13,7 @@ const { z } = require('zod');
 const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
-const { requestOtp, verifyOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
+const { requestOtp, verifyOtp, clearPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
 
@@ -478,6 +478,9 @@ app.post('/api/gopay/connect/start', requireUser, async (req, res) => {
     await audit(req.user.id, 'gopay_otp_requested');
     return res.json({ success: true, status: 'otp_pending', expiresIn: result.expiresIn });
   } catch (error) {
+    console.error('gopay otp start:', error.response?.status || '', error.response?.data || error.message);
+    if (error.statusCode === 429) return fail(res, 429, error.message);
+    if (error.message && error.message.includes('Nomor GoPay')) return fail(res, 400, error.message);
     return fail(res, 502, 'GoBiz menolak request OTP. Perbarui aplikasi GoPay Merchant atau coba lagi nanti.');
   }
 });
@@ -500,6 +503,7 @@ app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
 });
 
 app.post('/api/gopay/logout', requireUser, async (req, res) => {
+  clearPendingOtp(req.user.id);
   await pool.execute(
     "UPDATE gopay_accounts SET phone_number=NULL, merchant_id=NULL, merchant_name=NULL, owner_name=NULL, encrypted_session=NULL, status='disconnected', last_error=NULL WHERE user_id=?",
     [req.user.id]
