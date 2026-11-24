@@ -432,6 +432,109 @@
   text-decoration: underline;
 }
 
+/* ==========================================================================
+   FAQ Section Styles from POS Kedai (faq.html)
+   ========================================================================== */
+
+.faq-category {
+  margin-bottom: 48px;
+}
+
+.faq-category:last-child {
+  margin-bottom: 0;
+}
+
+.faq-category-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pk-primary);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--pk-primary);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--pk-border-subtle);
+  margin-bottom: 0;
+}
+
+.faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 20px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--pk-text-primary);
+  text-align: left;
+  transition: color 0.2s ease;
+  font-family: inherit;
+}
+
+.faq-question:hover {
+  color: var(--pk-primary);
+}
+
+.faq-question::after {
+  content: '+';
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--pk-primary);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  flex-shrink: 0;
+  margin-left: 16px;
+  line-height: 1;
+}
+
+.faq-item.active .faq-question::after {
+  transform: rotate(45deg);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.22, 1, 0.36, 1), padding 0.25s ease;
+}
+
+.faq-item.active .faq-answer {
+  max-height: 800px;
+  padding-bottom: 22px;
+}
+
+.faq-answer p {
+  color: var(--pk-text-secondary);
+  line-height: 1.75;
+  margin-bottom: 12px;
+  font-size: 14.5px;
+}
+
+.faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.faq-answer ul,
+.faq-answer ol {
+  margin: 8px 0 14px 20px;
+  padding: 0;
+}
+
+.faq-answer li {
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+  line-height: 1.7;
+  margin-bottom: 6px;
+}
+
 @keyframes pk-fade-in-up {
   from {
     opacity: 0;

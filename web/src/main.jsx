@@ -10,6 +10,7 @@ import DocumentsPage from './DocumentsPage';
 import AboutPage from './AboutPage';
 import PrivacyPage from './PrivacyPage';
 import TermsPage from './TermsPage';
+import FaqPage from './FaqPage';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
@@ -1140,6 +1141,7 @@ function App() {
   const isAbout = path === '/about' || path === '/tentang-kami';
   const isPrivacy = path === '/privacy' || path === '/kebijakan-privasi';
   const isTerms = path === '/terms' || path === '/syarat-ketentuan';
+  const isFaq = path === '/faq' || path === '/tanya-jawab';
 
   const logout = async () => {
     try { await request('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
@@ -1149,6 +1151,7 @@ function App() {
   if (isAbout) return <AboutPage user={auth?.user} onLogout={logout} />;
   if (isPrivacy) return <PrivacyPage user={auth?.user} onLogout={logout} />;
   if (isTerms) return <TermsPage user={auth?.user} onLogout={logout} />;
+  if (isFaq) return <FaqPage user={auth?.user} onLogout={logout} />;
 
   if (!auth) return <div className="loading">Memuat…</div>;
   if (!auth.authenticated) return <Login />;

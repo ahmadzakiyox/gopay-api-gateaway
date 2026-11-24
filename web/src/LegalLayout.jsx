@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, FileText, Info, Shield } from 'lucide-react';
+import { AlertTriangle, FileText, HelpCircle, Info, Shield } from 'lucide-react';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
@@ -23,7 +23,8 @@ export function LegalLayout({ activeTab, title, tagline, date, user, onLogout, c
   const tabs = [
     { key: 'about', label: 'Tentang Kami', href: '/about', icon: Info },
     { key: 'privacy', label: 'Kebijakan Privasi', href: '/privacy', icon: Shield },
-    { key: 'terms', label: 'Syarat & Ketentuan', href: '/terms', icon: FileText }
+    { key: 'terms', label: 'Syarat & Ketentuan', href: '/terms', icon: FileText },
+    { key: 'faq', label: 'FAQ', href: '/faq', icon: HelpCircle }
   ];
 
   const isAuthenticated = Boolean(user && user.id);

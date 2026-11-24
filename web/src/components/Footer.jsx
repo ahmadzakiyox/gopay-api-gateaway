@@ -27,6 +27,8 @@ export function Footer() {
           <a href="/privacy">Kebijakan Privasi</a>
           <span className="site-footer-dot" aria-hidden="true">&bull;</span>
           <a href="/terms">Syarat & Ketentuan</a>
+          <span className="site-footer-dot" aria-hidden="true">&bull;</span>
+          <a href="/faq">FAQ</a>
         </nav>
 
         <hr className="site-footer-rule" />
