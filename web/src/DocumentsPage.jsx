@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ban, BookOpen, Check, Clipboard, Code2, FileText, KeyRound, Play, RefreshCw, ShieldCheck, Smartphone, Terminal } from 'lucide-react';
+import { Ban, BookOpen, Check, Clipboard, Code2, FileText, KeyRound, Play, RefreshCw, ShieldCheck, Smartphone, Terminal, Webhook } from 'lucide-react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
@@ -7,7 +7,8 @@ const BASE_URL = 'https://api-qris.alternat.my.id';
 
 const CREATE_REQ_JSON = `{
   "orderId": "INV-20261124-001",
-  "amount": 10000
+  "amount": 10000,
+  "webhookUrl": "https://api.toko-kamu.com/callback/gopay"
 }`;
 
 const CREATE_CURL = `curl -X POST "${BASE_URL}/api/v1/payments" \\
@@ -105,6 +106,51 @@ const CANCEL_CURL = `curl -X POST "${BASE_URL}/api/v1/payments/019a4f20-8c1b-700
   -H "x-api-key: gpg_YOUR_API_KEY"`;
 
 const CANCEL_RES_JSON = STATUS_RESPONSES.cancelled;
+
+const WEBHOOK_PAYLOAD_JSON = `{
+  "event": "payment.paid",
+  "timestamp": "2026-11-25T10:00:05.120Z",
+  "data": {
+    "trxId": "019a4f20-8c1b-7000-8000-000000000001",
+    "orderId": "INV-20261124-001",
+    "baseAmount": 10000,
+    "surcharge": 35,
+    "payableAmount": 10035,
+    "status": "paid",
+    "paymentType": "QRIS",
+    "providerTransactionId": "1298492048294",
+    "settlementTime": "2026-11-25 17:00:04.000",
+    "paidAt": "2026-11-25 17:00:05.000",
+    "createdAt": "2026-11-25 16:58:12.000"
+  }
+}`;
+
+const WEBHOOK_VERIFY_NODE = `const express = require('express');
+const crypto = require('crypto');
+const app = express();
+
+app.post('/callback/gopay', express.json(), (req, res) => {
+  const signature = req.headers['x-callback-signature'];
+  const secret = process.env.ALTERNATE_PAY_WEBHOOK_SECRET;
+
+  // Verifikasi keaslian payload dari AlternatePay (HMAC-SHA256)
+  const expectedSig = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(req.body))
+    .digest('hex');
+
+  if (signature !== expectedSig) {
+    return res.status(401).json({ error: 'Signature tidak valid' });
+  }
+
+  const { event, data } = req.body;
+  if (event === 'payment.paid') {
+    console.log('Pesanan lunas:', data.orderId, 'Nominal:', data.payableAmount);
+    // TODO: Update status transaksi pesanan Anda di database ke "PAID"
+  }
+
+  res.status(200).json({ received: true });
+});`;
 
 const ERROR_RES_JSON = `{
   "success": false,
@@ -269,6 +315,11 @@ export default function DocumentsPage({ request, user }) {
                 <span className="gpy-doc-req">wajib</span>
                 <p>Nominal dasar dalam Rupiah (integer &gt; 0). Sistem menambahkan penanda unik <code>surcharge</code> agar <code>payableAmount</code> unik.</p>
               </div>
+              <div className="gpy-doc-param">
+                <code>webhookUrl</code>
+                <span className="gpy-doc-opt" style={{ color: 'var(--muted)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>opsional</span>
+                <p>URL callback notifikasi khusus untuk pesanan ini. Jika tidak diisi, sistem menggunakan Webhook URL default yang tersimpan di menu Api Key.</p>
+              </div>
             </div>
 
             <CodeBlock id="create-json" title="Request Body (JSON)" code={CREATE_REQ_JSON} copiedId={copiedId} onCopy={copyText} />
@@ -292,6 +343,10 @@ export default function DocumentsPage({ request, user }) {
 
             <p className="gpy-doc-note">
               Lakukan polling setiap 3 – 5 detik selama status masih <code>pending</code>. Hentikan polling segera setelah status berubah menjadi <code>paid</code>, <code>cancelled</code>, atau <code>expired</code>.
+              <br />
+              <span style={{ fontSize: '12.5px', color: 'var(--muted)', display: 'inline-block', marginTop: 4 }}>
+                * <strong>Rekomendasi untuk Bot:</strong> Jika aplikasi Anda adalah bot Telegram / WhatsApp atau server tanpa domain publik, gunakan metode Polling ini untuk memantau status pesanan hingga lunas.
+              </span>
             </p>
 
             <CodeBlock id="status-curl" title="Contoh Request (cURL)" code={STATUS_CURL} copiedId={copiedId} onCopy={copyText} />
@@ -347,10 +402,45 @@ export default function DocumentsPage({ request, user }) {
             <CodeBlock id="cancel-res" title="Output JSON (200 OK)" code={CANCEL_RES_JSON} copiedId={copiedId} onCopy={copyText} />
           </section>
 
+          <section className="gpy-panel" id="doc-webhook">
+            <div className="gpy-panel-head">
+              <div>
+                <p className="gpy-section-label">06 / WEBHOOK (CALLBACK)</p>
+                <h3>Notifikasi Otomatis Webhook</h3>
+              </div>
+              <Webhook size={18} />
+            </div>
+
+            <div className="gpy-doc-endpoint">
+              <span className="gpy-doc-method is-post">POST</span>
+              <code>[Webhook URL Anda]</code>
+            </div>
+
+            <p className="gpy-doc-note">
+              Ketika pembeli melunasi pembayaran QRIS, sistem AlternatePay akan seketika mengirim HTTP <code>POST</code> ke Webhook URL Anda dengan header <code>X-Callback-Signature</code> yang ditandatangani menggunakan HMAC-SHA256 (Webhook Secret).
+            </p>
+
+            <div className="gpy-doc-param-list">
+              <div className="gpy-doc-param">
+                <code>X-Callback-Signature</code>
+                <span className="gpy-doc-req">Header</span>
+                <p>Tanda tangan HMAC-SHA256 dari string body request menggunakan Webhook Secret Anda.</p>
+              </div>
+              <div className="gpy-doc-param">
+                <code>X-Callback-Event</code>
+                <span className="gpy-doc-opt">Header</span>
+                <p>Nama event notifikasi, bernilai <code>payment.paid</code> saat transaksi lunas.</p>
+              </div>
+            </div>
+
+            <CodeBlock id="webhook-json" title="Contoh Payload Webhook (JSON)" code={WEBHOOK_PAYLOAD_JSON} copiedId={copiedId} onCopy={copyText} />
+            <CodeBlock id="webhook-verify" title="Contoh Verifikasi Signature di Node.js (Express)" code={WEBHOOK_VERIFY_NODE} copiedId={copiedId} onCopy={copyText} />
+          </section>
+
           <section className="gpy-panel" id="doc-errors">
             <div className="gpy-panel-head">
               <div>
-                <p className="gpy-section-label">06 / ERROR & IMPLEMENTASI</p>
+                <p className="gpy-section-label">07 / ERROR & IMPLEMENTASI</p>
                 <h3>Kode Error & Contoh Integrasi</h3>
               </div>
               <Terminal size={18} />

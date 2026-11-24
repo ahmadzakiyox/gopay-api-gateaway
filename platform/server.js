@@ -16,6 +16,7 @@ const { generateDynamicQRIS, validateQris } = require('./qris');
 const { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
+const { buildWebhookPayload, sendWebhook } = require('./webhook');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
@@ -58,6 +59,50 @@ function cleanupRateLimit() {
 const cleanupInterval = setInterval(cleanupRateLimit, 60000);
 cleanupInterval.unref();
 
+async function dispatchPaymentWebhook(userId, paymentId) {
+  try {
+    const [[payment]] = await pool.execute('SELECT * FROM payments WHERE id=? AND user_id=? LIMIT 1', [paymentId, userId]);
+    if (!payment) return;
+
+    let targetUrl = payment.webhook_url;
+    let secret = '';
+
+    const [[config]] = await pool.execute('SELECT webhook_url, secret, is_active FROM webhook_configs WHERE user_id=? LIMIT 1', [userId]);
+    if (!targetUrl && config && config.is_active && config.webhook_url) {
+      targetUrl = config.webhook_url;
+    }
+    if (config && config.secret) {
+      secret = config.secret;
+    }
+
+    if (!targetUrl) {
+      await pool.execute("UPDATE payments SET webhook_status='skipped' WHERE id=?", [paymentId]);
+      return;
+    }
+
+    const payload = buildWebhookPayload(payment);
+    const result = await sendWebhook({ url: targetUrl, secret, payload, timeoutMs: 10000, eventName: 'payment.paid' });
+
+    const responseSummary = result.success
+      ? `HTTP ${result.statusCode} (${result.responseTimeMs}ms)`
+      : (result.error || `HTTP ${result.statusCode || 0}`).slice(0, 255);
+
+    await pool.execute(
+      "UPDATE payments SET webhook_status=?, webhook_attempts=webhook_attempts + 1, webhook_last_response=?, webhook_delivered_at=? WHERE id=?",
+      [result.success ? 'delivered' : 'failed', responseSummary, result.success ? new Date() : null, paymentId]
+    );
+
+    await audit(userId, result.success ? 'webhook_delivered' : 'webhook_delivery_failed', {
+      trxId: paymentId,
+      url: targetUrl,
+      statusCode: result.statusCode,
+      error: result.success ? undefined : result.error
+    });
+  } catch (error) {
+    console.error(`dispatchPaymentWebhook error for user ${userId}, payment ${paymentId}:`, error.message);
+  }
+}
+
 async function pollMerchantPayments(userId) {
   checkRateLimit(userId);
   const connection = await pool.getConnection();
@@ -84,6 +129,7 @@ async function pollMerchantPayments(userId) {
       if (updated.affectedRows === 1) {
         settled += 1;
         await audit(userId, 'payment_paid', { trxId: payments[0].id, orderId: payments[0].order_id, amount: Number(payments[0].payable_amount), providerTransactionId: transaction.transactionId });
+        dispatchPaymentWebhook(userId, payments[0].id).catch((err) => console.error('dispatch webhook error:', err.message));
       }
     }
     return settled;
@@ -166,6 +212,7 @@ function safePaymentStatus(row) {
     expiresIn: remainingSec,
     expiresAt: row.expires_at,
     paidAt: row.paid_at,
+    webhookUrl: row.webhook_url || undefined,
     providerTransaction: row.status === 'paid' ? {
       id: row.provider_transaction_id,
       orderId: row.provider_order_id,
@@ -204,6 +251,7 @@ async function pollMerchantPayments(userId) {
       if (updated.affectedRows === 1) {
         settled += 1;
         await audit(userId, 'payment_paid', { trxId: payments[0].id, orderId: payments[0].order_id, amount: Number(payments[0].payable_amount), providerTransactionId: transaction.transactionId });
+        dispatchPaymentWebhook(userId, payments[0].id).catch((err) => console.error('dispatch webhook error:', err.message));
       }
     }
     return settled;
@@ -269,6 +317,7 @@ app.get('/api/dashboard', requireUser, async (req, res) => {
   const [gopay] = await pool.execute("SELECT phone_number, merchant_id, merchant_name, owner_name, encrypted_session, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
   const [qris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM qris_configs WHERE user_id=?', [req.user.id]);
   const [key] = await pool.execute('SELECT key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
+  const [webhook] = await pool.execute('SELECT webhook_url, secret, is_active, updated_at FROM webhook_configs WHERE user_id=?', [req.user.id]);
 
   let gopayData = gopay[0] || { status: 'disconnected' };
   if (gopayData.status === 'otp_pending' && !hasPendingOtp(req.user.id)) {
@@ -296,11 +345,119 @@ app.get('/api/dashboard', requireUser, async (req, res) => {
   // Remove encrypted_session from response payload
   const { encrypted_session, ...sanitizedGopay } = gopayData;
 
-  res.json({ success: true, user: req.user, gopay: sanitizedGopay, qris: qris[0] ? { configured: true, isValid: Boolean(qris[0].is_valid), updatedAt: qris[0].updated_at, staticQris: qris[0].static_qris } : { configured: false }, apiKey: key[0] || null });
+  res.json({
+    success: true,
+    user: req.user,
+    gopay: sanitizedGopay,
+    qris: qris[0] ? { configured: true, isValid: Boolean(qris[0].is_valid), updatedAt: qris[0].updated_at, staticQris: qris[0].static_qris } : { configured: false },
+    apiKey: key[0] || null,
+    webhook: webhook[0] ? { url: webhook[0].webhook_url, secret: webhook[0].secret, isActive: Boolean(webhook[0].is_active), updatedAt: webhook[0].updated_at } : null
+  });
 });
 
 app.get('/api/api-key', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT encrypted_key, key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'API key belum dibuat'); res.json({ success: true, apiKey: { key: decrypt(rows[0].encrypted_key), prefix: rows[0].key_prefix, createdAt: rows[0].created_at, rotatedAt: rows[0].rotated_at } }); });
 app.post('/api/api-key', requireUser, async (req, res) => { const key = randomApiKey(); await pool.execute('INSERT INTO api_keys (user_id, encrypted_key, key_prefix, key_hash) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE encrypted_key=VALUES(encrypted_key), key_prefix=VALUES(key_prefix), key_hash=VALUES(key_hash), rotated_at=NOW()', [req.user.id, encrypt(key), key.slice(0, 12), crypto.createHash('sha256').update(key).digest('hex')]); await audit(req.user.id, 'api_key_created_or_rotated'); res.json({ success: true, apiKey: { key, prefix: key.slice(0, 12) } }); });
+
+app.get('/api/webhook', requireUser, async (req, res) => {
+  const [rows] = await pool.execute('SELECT webhook_url, secret, is_active, updated_at FROM webhook_configs WHERE user_id=?', [req.user.id]);
+  if (!rows[0]) {
+    return res.json({ success: true, webhook: null });
+  }
+  return res.json({
+    success: true,
+    webhook: {
+      url: rows[0].webhook_url,
+      secret: rows[0].secret,
+      isActive: Boolean(rows[0].is_active),
+      updatedAt: rows[0].updated_at
+    }
+  });
+});
+
+app.post('/api/webhook', requireUser, async (req, res) => {
+  const { url, secret, isActive = true } = req.body || {};
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    await pool.execute('DELETE FROM webhook_configs WHERE user_id=?', [req.user.id]);
+    await audit(req.user.id, 'webhook_deleted');
+    return res.json({ success: true, webhook: null, message: 'Webhook dinonaktifkan' });
+  }
+
+  const cleanUrl = url.trim();
+  try {
+    const parsed = new URL(cleanUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return fail(res, 400, 'Webhook URL harus berupa URL HTTP atau HTTPS yang valid');
+    }
+  } catch {
+    return fail(res, 400, 'Format Webhook URL tidak valid');
+  }
+
+  const currentSecret = typeof secret === 'string' && secret.trim()
+    ? secret.trim()
+    : crypto.randomBytes(16).toString('hex');
+
+  await pool.execute(
+    'INSERT INTO webhook_configs (user_id, webhook_url, secret, is_active) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE webhook_url=VALUES(webhook_url), secret=VALUES(secret), is_active=VALUES(is_active)',
+    [req.user.id, cleanUrl, currentSecret, isActive ? 1 : 0]
+  );
+  await audit(req.user.id, 'webhook_configured', { url: cleanUrl });
+
+  return res.json({
+    success: true,
+    webhook: {
+      url: cleanUrl,
+      secret: currentSecret,
+      isActive: Boolean(isActive)
+    },
+    message: 'Webhook berhasil disimpan'
+  });
+});
+
+app.post('/api/webhook/test', requireUser, async (req, res) => {
+  const [rows] = await pool.execute('SELECT webhook_url, secret FROM webhook_configs WHERE user_id=? LIMIT 1', [req.user.id]);
+  const targetUrl = req.body?.url?.trim() || rows[0]?.webhook_url;
+  const secret = req.body?.secret?.trim() || rows[0]?.secret || crypto.randomBytes(16).toString('hex');
+
+  if (!targetUrl) {
+    return fail(res, 400, 'Belum ada Webhook URL yang diatur untuk diuji coba');
+  }
+
+  try {
+    const parsed = new URL(targetUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return fail(res, 400, 'URL harus menggunakan http: atau https:');
+    }
+  } catch {
+    return fail(res, 400, 'Format URL tidak valid');
+  }
+
+  const testPayload = {
+    event: 'webhook.test',
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'Uji coba pengiriman webhook dari AlternatePay berhasil diterima.',
+      testTrxId: crypto.randomUUID(),
+      user: req.user.username || req.user.first_name || 'Merchant'
+    }
+  };
+
+  const result = await sendWebhook({
+    url: targetUrl,
+    secret,
+    payload: testPayload,
+    timeoutMs: 8000,
+    eventName: 'webhook.test'
+  });
+
+  return res.json({
+    success: result.success,
+    statusCode: result.statusCode,
+    statusText: result.statusText,
+    responseTimeMs: result.responseTimeMs,
+    responseBody: result.responseBody,
+    error: result.error
+  });
+});
 
 const pollingUsers = new Set();
 const pollingTimer = setInterval(() => {
@@ -320,7 +477,8 @@ const requirePositiveId = z.string().trim().min(1).max(128);
 const createPaymentSchema = z.object({
   orderId: requirePositiveId,
   amount: z.coerce.number().int().positive().max(MAX_PAYABLE_AMOUNT - PAYMENT_MIN_SURCHARGE),
-  idempotencyKey: z.string().trim().min(1).max(128).optional()
+  idempotencyKey: z.string().trim().min(1).max(128).optional(),
+  webhookUrl: z.string().trim().url().max(1024).optional()
 });
 
 async function createPaymentForUser(userId, input) {
@@ -356,8 +514,15 @@ async function createPaymentForUser(userId, input) {
       error.statusCode = 409;
       throw error;
     }
+    let initialWebhookUrl = input.webhookUrl || null;
+    if (!initialWebhookUrl) {
+      const [[userWebhook]] = await connection.execute('SELECT webhook_url FROM webhook_configs WHERE user_id=? AND is_active=1 LIMIT 1', [userId]);
+      if (userWebhook && userWebhook.webhook_url) {
+        initialWebhookUrl = userWebhook.webhook_url;
+      }
+    }
     const qrisPayload = generateDynamicQRIS(configs[0].static_qris, allocation.payableAmount);
-    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,status,expires_at,reservation_until) VALUES (?,?,?,?,?,?,?,?, 'pending',?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,expiresAt,reservationUntil]);
+    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,status,expires_at,reservation_until,webhook_url) VALUES (?,?,?,?,?,?,?,?, 'pending',?,?,?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,expiresAt,reservationUntil,initialWebhookUrl]);
     const [[created]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=?', [trxId,userId]);
     await connection.commit();
     return { row: created, created: true };

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Ban, BookOpen, Check, Clipboard, Code2, Eye, EyeOff, FileText, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, X } from 'lucide-react';
+import { Activity, Ban, BookOpen, Check, Clipboard, Code2, Eye, EyeOff, FileText, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, Send, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, Webhook, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
@@ -692,7 +692,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
     <section className="gpy-panel" id="api-key-sandbox">
       <div className="gpy-panel-head">
         <div>
-          <p className="gpy-section-label">02 / API SANDBOX</p>
+          <p className="gpy-section-label">03 / API SANDBOX</p>
           <h3>Test transaksi via Api Key</h3>
         </div>
         <Terminal size={18} />
@@ -911,15 +911,71 @@ function ApiKeyPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [webhookActive, setWebhookActive] = useState(true);
+  const [webhookBusy, setWebhookBusy] = useState(false);
+  const [testStatus, setTestStatus] = useState({ loading: false, result: null });
   const endpointBase = `${API}/api/v1/payments`;
 
   const load = async () => {
     try {
       const result = await request('/api/dashboard');
       setData(result);
+      if (result.webhook) {
+        setWebhookUrl(result.webhook.url || '');
+        setWebhookSecret(result.webhook.secret || '');
+        setWebhookActive(result.webhook.isActive ?? true);
+      }
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
       else setError(e.message);
+    }
+  };
+
+  const saveWebhook = async () => {
+    setWebhookBusy(true);
+    setNotice('');
+    setError('');
+    setTestStatus({ loading: false, result: null });
+    try {
+      const res = await request('/api/webhook', {
+        method: 'POST',
+        body: JSON.stringify({ url: webhookUrl, secret: webhookSecret, isActive: webhookActive })
+      });
+      if (res.webhook) {
+        setWebhookUrl(res.webhook.url || '');
+        setWebhookSecret(res.webhook.secret || '');
+        setWebhookActive(res.webhook.isActive ?? true);
+        setNotice(res.message || 'Webhook berhasil disimpan.');
+      } else {
+        setWebhookUrl('');
+        setWebhookSecret('');
+        setNotice('Webhook dinonaktifkan.');
+      }
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setWebhookBusy(false);
+    }
+  };
+
+  const testWebhook = async () => {
+    if (!webhookUrl.trim()) return;
+    setTestStatus({ loading: true, result: null });
+    setError('');
+    try {
+      const res = await request('/api/webhook/test', {
+        method: 'POST',
+        body: JSON.stringify({ url: webhookUrl, secret: webhookSecret })
+      });
+      setTestStatus({ loading: false, result: res });
+    } catch (e) {
+      setTestStatus({
+        loading: false,
+        result: { success: false, error: e.message, statusCode: 0, responseTimeMs: 0 }
+      });
     }
   };
 
@@ -1120,6 +1176,101 @@ function ApiKeyPage() {
               </div>
             </div>
           )}
+
+          <section className="gpy-panel" id="webhook-config">
+            <div className="gpy-panel-head">
+              <div>
+                <p className="gpy-section-label">02 / WEBHOOK (CALLBACK)</p>
+                <h3>Webhook Notification</h3>
+              </div>
+              <Webhook size={18} />
+            </div>
+
+            <p className="gpy-meta-text" style={{ margin: '4px 0 16px', lineHeight: 1.6 }}>
+              Kirim notifikasi HTTP POST otomatis ke server kamu seketika saat pembayaran lunas (<code>PAID</code>).
+              <br />
+              <span style={{ color: 'var(--muted)', fontSize: '12.5px' }}>
+                * Jika sistem kamu adalah bot Telegram / WhatsApp tanpa domain publik, biarkan kosong dan gunakan metode polling <code>GET /api/v1/payments/:trxId</code>.
+              </span>
+            </p>
+
+            <label className="gpy-label" htmlFor="webhook-url-input">Webhook URL</label>
+            <div style={{ marginTop: 6, marginBottom: 14 }}>
+              <input
+                id="webhook-url-input"
+                type="url"
+                className="gpy-input"
+                placeholder="https://api.domain-kamu.com/callback/gopay"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                disabled={webhookBusy}
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <label className="gpy-label">Webhook Secret (HMAC-SHA256)</label>
+            <div className="gpy-key-box" style={{ marginTop: 6, marginBottom: 16 }}>
+              <code style={{ fontSize: '13px' }}>{webhookSecret || 'Akan di-generate otomatis saat disimpan'}</code>
+              {webhookSecret && (
+                <div className="gpy-key-actions">
+                  <button
+                    type="button"
+                    className="gpy-key-icon-btn"
+                    aria-label="Salin Webhook Secret"
+                    onClick={() => copy(webhookSecret, 'Webhook Secret disalin ke clipboard.', 'webhook-secret')}
+                  >
+                    {copiedTarget === 'webhook-secret' ? <Check size={15} /> : <Clipboard size={15} />}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {testStatus.result && (
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  marginBottom: 16,
+                  fontSize: '13px',
+                  lineHeight: 1.5,
+                  background: testStatus.result.success ? '#eefbf4' : '#fff5f5',
+                  border: `1px solid ${testStatus.result.success ? '#a7f3d0' : '#fecaca'}`,
+                  color: testStatus.result.success ? '#065f46' : '#991b1b'
+                }}
+              >
+                <strong>{testStatus.result.success ? 'Uji Coba Berhasil' : 'Uji Coba Gagal'}:</strong>{' '}
+                {testStatus.result.success ? (
+                  <span>HTTP {testStatus.result.statusCode} ({testStatus.result.responseTimeMs}ms)</span>
+                ) : (
+                  <span>{testStatus.result.error || `HTTP ${testStatus.result.statusCode}`}</span>
+                )}
+                {testStatus.result.responseBody && (
+                  <div style={{ marginTop: 6, fontSize: '11.5px', fontFamily: 'monospace', opacity: 0.85 }}>
+                    Respon server: {testStatus.result.responseBody}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="gpy-actions-row" style={{ gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="gpy-btn gpy-btn-primary"
+                onClick={saveWebhook}
+                disabled={webhookBusy || testStatus.loading}
+              >
+                {webhookBusy ? <><Loader2 size={14} className="gpy-spin" /> Menyimpan…</> : 'Simpan Webhook'}
+              </button>
+              <button
+                type="button"
+                className="gpy-btn gpy-btn-secondary"
+                onClick={testWebhook}
+                disabled={webhookBusy || testStatus.loading || !webhookUrl.trim()}
+              >
+                {testStatus.loading ? <><Loader2 size={14} className="gpy-spin" /> Menguji Ping…</> : <><Send size={14} /> Test Webhook</>}
+              </button>
+            </div>
+          </section>
 
           <ApiKeySandboxCard
             apiKey={keyVisible ? apiKey : ''}

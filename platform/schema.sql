@@ -83,6 +83,11 @@ CREATE TABLE IF NOT EXISTS payments (
   paid_at DATETIME(3) NULL,
   expires_at DATETIME(3) NOT NULL,
   reservation_until DATETIME(3) NOT NULL,
+  webhook_url VARCHAR(1024) NULL,
+  webhook_status ENUM('pending','delivered','failed','skipped') NOT NULL DEFAULT 'pending',
+  webhook_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  webhook_last_response TEXT NULL,
+  webhook_delivered_at DATETIME(3) NULL,
   created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   UNIQUE KEY uq_payments_user_idempotency (user_id, idempotency_key),
@@ -92,4 +97,15 @@ CREATE TABLE IF NOT EXISTS payments (
   KEY idx_payments_reservation (user_id, reservation_until, payable_amount),
   KEY idx_payments_amount_reservation (payable_amount, status, reservation_until),
   CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS webhook_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  webhook_url VARCHAR(1024) NOT NULL,
+  secret VARCHAR(128) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_webhook_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
