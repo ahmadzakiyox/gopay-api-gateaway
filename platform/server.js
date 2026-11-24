@@ -215,7 +215,7 @@ async function pollMerchantPayments(userId) {
 async function userFromRequest(req) {
   const sid = req.cookies.user_session;
   if (!sid) return null;
-  const [rows] = await pool.execute('SELECT u.id, u.telegram_id, u.username, u.first_name FROM web_sessions s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.expires_at > NOW()', [sid]);
+  const [rows] = await pool.execute('SELECT u.id, u.telegram_id, u.username, u.first_name, u.photo_url FROM web_sessions s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.expires_at > NOW()', [sid]);
   return rows[0] || null;
 }
 async function requireUser(req, res, next) {
@@ -249,7 +249,8 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
     const payload = claims.payload;
     const telegramId = payload.id || payload.sub;
     if (!telegramId || payload.iss !== 'https://oauth.telegram.org') throw new Error('Invalid Telegram identity');
-    const [result] = await pool.execute('INSERT INTO users (telegram_id, username, first_name) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE username=VALUES(username), first_name=VALUES(first_name), id=LAST_INSERT_ID(id)', [String(telegramId), payload.preferred_username || null, payload.given_name || payload.name || null]);
+    const photoUrl = typeof payload.picture === 'string' && /^https:\/\//.test(payload.picture) ? payload.picture.slice(0, 512) : null;
+    const [result] = await pool.execute('INSERT INTO users (telegram_id, username, first_name, photo_url) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE username=VALUES(username), first_name=VALUES(first_name), photo_url=VALUES(photo_url), id=LAST_INSERT_ID(id)', [String(telegramId), payload.preferred_username || null, payload.given_name || payload.name || null, photoUrl]);
     const userId = result.insertId;
     const sid = sessionId();
     await pool.execute('INSERT INTO web_sessions (id, user_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))', [sid, userId]);
@@ -259,7 +260,7 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
   } catch (error) { console.error('telegram callback:', error.response?.data || error.message); res.status(502).send('Login Telegram gagal. Silakan coba lagi.'); }
 });
 
-app.get('/api/auth/status', async (req, res) => { try { const user = await userFromRequest(req); res.json({ success: true, authenticated: Boolean(user), user: user ? { id: user.id, telegramId: user.telegram_id, username: user.username, firstName: user.first_name } : null }); } catch { fail(res, 500, 'Gagal membaca status login'); } });
+app.get('/api/auth/status', async (req, res) => { try { const user = await userFromRequest(req); res.json({ success: true, authenticated: Boolean(user), user: user ? { id: user.id, telegramId: user.telegram_id, username: user.username, firstName: user.first_name, photoUrl: user.photo_url || null } : null }); } catch { fail(res, 500, 'Gagal membaca status login'); } });
 app.post('/api/auth/logout', async (req, res) => { if (req.cookies.user_session) await pool.execute('DELETE FROM web_sessions WHERE id=?', [req.cookies.user_session]); res.clearCookie('user_session'); res.json({ success: true }); });
 
 require('./transactionReports').registerTransactionReports(app, pool, requireUser);

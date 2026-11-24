@@ -96,6 +96,12 @@
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.nav-profile-avatar-img {
+  object-fit: cover;
+  display: block;
 }
 
 .nav-profile-info {
@@ -302,6 +308,19 @@
 
 .mobile-menu-item.logout-item {
   border-top: 1px solid #e5e5e7;
+  color: #dc2626;
+}
+
+.mobile-menu-item.logout-item svg {
+  color: #dc2626;
+}
+
+.mobile-menu-item.logout-item:hover {
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.mobile-menu-item.logout-item:active {
+  background: rgba(220, 38, 38, 0.12);
 }
 
 .mobile-menu-item:last-child {

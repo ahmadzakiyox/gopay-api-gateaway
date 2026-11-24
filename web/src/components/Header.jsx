@@ -5,12 +5,14 @@ import './Header.css';
 export function Header({ onLogout, managementMode = false, user = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState(user);
+  const [imgFailed, setImgFailed] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
   useEffect(() => {
     if (user) {
       setProfile(user);
+      setImgFailed(false);
       return;
     }
     // Fetch user info if not passed directly
@@ -19,6 +21,7 @@ export function Header({ onLogout, managementMode = false, user = null }) {
       .then(data => {
         if (data.authenticated && data.user) {
           setProfile(data.user);
+          setImgFailed(false);
         }
       })
       .catch(() => {});
@@ -39,8 +42,19 @@ export function Header({ onLogout, managementMode = false, user = null }) {
     await onLogout();
   };
 
-  const avatarLetter = (profile?.first_name || profile?.username || 'U').slice(0, 1).toUpperCase();
-  const displayName = profile?.username ? `@${profile.username}` : (profile?.first_name || 'Personal workspace');
+  const avatarLetter = (profile?.firstName || profile?.first_name || profile?.username || 'U').slice(0, 1).toUpperCase();
+  const displayName = profile?.username ? `@${profile.username}` : (profile?.firstName || profile?.first_name || 'Personal workspace');
+  const photoUrl = !imgFailed ? (profile?.photoUrl || profile?.photo_url || '') : '';
+  const avatarNode = photoUrl ? (
+    <img
+      src={photoUrl}
+      alt={displayName}
+      className="nav-profile-avatar nav-profile-avatar-img"
+      onError={() => setImgFailed(true)}
+    />
+  ) : (
+    <span className="nav-profile-avatar">{avatarLetter}</span>
+  );
 
   return (
     <>
@@ -60,7 +74,7 @@ export function Header({ onLogout, managementMode = false, user = null }) {
         </button>
         <div className="side-bottom">
           <div className="nav-profile-section">
-            <span className="nav-profile-avatar">{avatarLetter}</span>
+            {avatarNode}
             <div className="nav-profile-info">
               <span className="nav-profile-name">{displayName}</span>
               <span className="nav-profile-sub">Workspace</span>
@@ -75,7 +89,7 @@ export function Header({ onLogout, managementMode = false, user = null }) {
       {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
       <div ref={menuRef} className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         <div className="mobile-menu-profile">
-          <span className="nav-profile-avatar">{avatarLetter}</span>
+          {avatarNode}
           <div className="nav-profile-info">
             <span className="nav-profile-name">{displayName}</span>
           </div>
