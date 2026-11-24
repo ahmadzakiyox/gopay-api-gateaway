@@ -387,7 +387,7 @@ function GoPayManagement() {
                   </button>
                 </div>
                 <p className="gpy-modal-body">
-                  Token dan refresh token GoPay Merchant akan dihapus dari sistem. Kamu harus login ulang dengan OTP untuk mengaktifkan koneksi kembali.
+                  Token, refresh token GoPay Merchant, dan string QRIS statis yang tersimpan akan dihapus dari sistem. Kamu harus login ulang dengan OTP dan mengunggah QRIS kembali untuk mengaktifkan koneksi.
                 </p>
                 <div className="gpy-modal-actions">
                   <button

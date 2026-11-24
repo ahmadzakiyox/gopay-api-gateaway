@@ -504,6 +504,7 @@ app.post('/api/gopay/logout', requireUser, async (req, res) => {
     "UPDATE gopay_accounts SET phone_number=NULL, merchant_id=NULL, merchant_name=NULL, owner_name=NULL, encrypted_session=NULL, status='disconnected', last_error=NULL WHERE user_id=?",
     [req.user.id]
   );
+  await pool.execute('DELETE FROM qris_configs WHERE user_id=?', [req.user.id]);
   await audit(req.user.id, 'gopay_disconnected');
   return res.json({ success: true, status: 'disconnected' });
 });
