@@ -52,7 +52,7 @@
 
 .brand-text b {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .workspace-nav nav {
@@ -139,7 +139,7 @@
   border-radius: 8px;
   background: white;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   transition: all 0.2s;
   cursor: pointer;
@@ -367,7 +367,11 @@
   }
 
   .brand-text {
-    font-size: 11px;
+    font-size: 13px;
+  }
+
+  .brand-text b {
+    font-size: 13px;
   }
 
   .side-bottom {
@@ -380,7 +384,7 @@
 
   .logout {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .mobile-menu {
@@ -404,16 +408,20 @@
   }
 
   .brand-text {
-    font-size: 12px;
+    font-size: 13px;
+  }
+
+  .brand-text b {
+    font-size: 13px;
   }
 
   .workspace-nav nav a {
     padding: 10px 12px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .logout {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 13px;
   }
 }

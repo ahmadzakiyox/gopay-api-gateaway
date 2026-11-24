@@ -7,10 +7,12 @@ export function Footer() {
       <div className="container footer-container">
         <div className="footer-top">
           <div className="footer-brand">
-            <div className="brand-text-stacked">
-              <span className="brand-pos">ALTERNATE</span>
-              <span className="brand-kedai">PAY</span>
-            </div>
+            <a href="/dashboard" className="footer-brand-link">
+              <img src="/logo.png" alt="Alternate Pay Logo" className="footer-brand-logo" />
+              <span className="footer-brand-text">
+                Alternate <b>Pay</b>
+              </span>
+            </a>
             <p className="footer-tagline">Payment operations, without the busywork.</p>
           </div>
 

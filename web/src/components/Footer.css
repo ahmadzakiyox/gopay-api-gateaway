@@ -35,22 +35,44 @@
   gap: 12px;
 }
 
-.brand-text-stacked {
-  display: flex;
-  flex-direction: column;
-  line-height: 0.85;
+.footer-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  width: fit-content;
+  color: #fff;
+  transition: opacity 0.2s ease;
 }
 
-.brand-pos {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.footer-brand-link:hover {
+  opacity: 0.9;
 }
 
-.brand-kedai {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.footer-brand-logo {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+
+.footer-brand-text {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.footer-brand-text b {
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffffff;
 }
 
 .footer-tagline {
