@@ -224,9 +224,7 @@ function GoPayManagement() {
       const result = await request('/api/dashboard');
       setData(result);
       setPhone(result.gopay.phone_number || '');
-      if (result.gopay.status === 'otp_pending') {
-        setOtpSent(true);
-      }
+      setOtpSent(result.gopay.status === 'otp_pending');
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
       else setError(e.message);
@@ -244,6 +242,43 @@ function GoPayManagement() {
       const result = await request('/api/gopay/connect/start', { method: 'POST', body: JSON.stringify({ phoneNumber: phone }) });
       setOtpSent(true);
       setNotice(`OTP dikirim. Berlaku ${Math.floor(result.expiresIn / 60)} menit.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendGoPayOtp = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/gopay/connect/reset', { method: 'POST' });
+      if (!phone.trim()) {
+        setOtp('');
+        setOtpSent(false);
+        return;
+      }
+      const result = await request('/api/gopay/connect/start', { method: 'POST', body: JSON.stringify({ phoneNumber: phone }) });
+      setOtp('');
+      setOtpSent(true);
+      setNotice(`OTP baru dikirim. Berlaku ${Math.floor(result.expiresIn / 60)} menit.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resetGoPayPhone = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/gopay/connect/reset', { method: 'POST' });
+      setOtp('');
+      setOtpSent(false);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -352,6 +387,14 @@ function GoPayManagement() {
                 <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
                   <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi OTP'}
                 </button>
+                <div className="gpy-actions-row">
+                  <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resendGoPayOtp} disabled={busy}>
+                    <RefreshCw size={14} /> Kirim ulang OTP
+                  </button>
+                  <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resetGoPayPhone} disabled={busy}>
+                    Ganti nomor
+                  </button>
+                </div>
               </form>
             )}
             {isConnected && (

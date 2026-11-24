@@ -56,6 +56,11 @@ function clearPendingOtp(userId) {
   pending.delete(userId);
 }
 
+function hasPendingOtp(userId) {
+  expire(userId);
+  return pending.has(userId);
+}
+
 async function requestOtp(userId, phoneNumber) {
   expire(userId);
   if (pending.has(userId)) {
@@ -183,4 +188,4 @@ async function fetchMerchantProfile(session) {
   }
 }
 
-module.exports = { requestOtp, verifyOtp, clearPendingOtp, listTransactions, refreshSession, fetchMerchantProfile };
+module.exports = { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions, refreshSession, fetchMerchantProfile };

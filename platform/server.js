@@ -13,7 +13,7 @@ const { z } = require('zod');
 const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
-const { requestOtp, verifyOtp, clearPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
+const { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
 
@@ -271,6 +271,10 @@ app.get('/api/dashboard', requireUser, async (req, res) => {
   const [key] = await pool.execute('SELECT key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
 
   let gopayData = gopay[0] || { status: 'disconnected' };
+  if (gopayData.status === 'otp_pending' && !hasPendingOtp(req.user.id)) {
+    await pool.execute("UPDATE gopay_accounts SET status='disconnected' WHERE user_id=? AND status='otp_pending'", [req.user.id]);
+    gopayData.status = 'disconnected';
+  }
   // If connected but merchant_name / owner_name is not yet populated, backfill once from session
   if (gopayData.status === 'connected' && (!gopayData.merchant_name || !gopayData.owner_name) && gopayData.encrypted_session) {
     try {
@@ -500,6 +504,12 @@ app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
     await pool.execute('UPDATE gopay_accounts SET status=\'error\', last_error=? WHERE user_id=?', [error.message.slice(0, 500), req.user.id]);
     return fail(res, 502, error.message);
   }
+});
+
+app.post('/api/gopay/connect/reset', requireUser, async (req, res) => {
+  clearPendingOtp(req.user.id);
+  await pool.execute("UPDATE gopay_accounts SET status='disconnected', last_error=NULL WHERE user_id=? AND status='otp_pending'", [req.user.id]);
+  return res.json({ success: true, status: 'disconnected' });
 });
 
 app.post('/api/gopay/logout', requireUser, async (req, res) => {
