@@ -316,7 +316,7 @@ require('./transactionReports').registerTransactionReports(app, pool, requireUse
 app.get('/api/dashboard', requireUser, async (req, res) => {
   const [gopay] = await pool.execute("SELECT phone_number, merchant_id, merchant_name, owner_name, encrypted_session, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
   const [qris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM qris_configs WHERE user_id=?', [req.user.id]);
-  const [key] = await pool.execute('SELECT key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
+  const [key] = await pool.execute('SELECT key_prefix, service_type, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
   const [webhook] = await pool.execute('SELECT webhook_url, secret, is_active, updated_at FROM webhook_configs WHERE user_id=?', [req.user.id]);
 
   let gopayData = gopay[0] || { status: 'disconnected' };
@@ -355,8 +355,38 @@ app.get('/api/dashboard', requireUser, async (req, res) => {
   });
 });
 
-app.get('/api/api-key', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT encrypted_key, key_prefix, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'API key belum dibuat'); res.json({ success: true, apiKey: { key: decrypt(rows[0].encrypted_key), prefix: rows[0].key_prefix, createdAt: rows[0].created_at, rotatedAt: rows[0].rotated_at } }); });
-app.post('/api/api-key', requireUser, async (req, res) => { const key = randomApiKey(); await pool.execute('INSERT INTO api_keys (user_id, encrypted_key, key_prefix, key_hash) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE encrypted_key=VALUES(encrypted_key), key_prefix=VALUES(key_prefix), key_hash=VALUES(key_hash), rotated_at=NOW()', [req.user.id, encrypt(key), key.slice(0, 12), crypto.createHash('sha256').update(key).digest('hex')]); await audit(req.user.id, 'api_key_created_or_rotated'); res.json({ success: true, apiKey: { key, prefix: key.slice(0, 12) } }); });
+app.get('/api/api-key', requireUser, async (req, res) => {
+  const [rows] = await pool.execute('SELECT encrypted_key, key_prefix, service_type, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
+  if (!rows[0]) return fail(res, 404, 'API key belum dibuat');
+  res.json({
+    success: true,
+    apiKey: {
+      key: decrypt(rows[0].encrypted_key),
+      prefix: rows[0].key_prefix,
+      serviceType: rows[0].service_type || 'website',
+      createdAt: rows[0].created_at,
+      rotatedAt: rows[0].rotated_at
+    }
+  });
+});
+
+app.post('/api/api-key', requireUser, async (req, res) => {
+  const serviceType = ['website', 'bot'].includes(req.body?.serviceType) ? req.body.serviceType : 'website';
+  const key = randomApiKey();
+  await pool.execute(
+    'INSERT INTO api_keys (user_id, service_type, encrypted_key, key_prefix, key_hash) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE service_type=VALUES(service_type), encrypted_key=VALUES(encrypted_key), key_prefix=VALUES(key_prefix), key_hash=VALUES(key_hash), rotated_at=NOW()',
+    [req.user.id, serviceType, encrypt(key), key.slice(0, 12), crypto.createHash('sha256').update(key).digest('hex')]
+  );
+  await audit(req.user.id, 'api_key_created_or_rotated', { serviceType });
+  res.json({
+    success: true,
+    apiKey: {
+      key,
+      prefix: key.slice(0, 12),
+      serviceType
+    }
+  });
+});
 
 app.get('/api/webhook', requireUser, async (req, res) => {
   const [rows] = await pool.execute('SELECT webhook_url, secret, is_active, updated_at FROM webhook_configs WHERE user_id=?', [req.user.id]);

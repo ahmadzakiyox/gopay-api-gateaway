@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Ban, BookOpen, Check, Clipboard, Code2, Eye, EyeOff, FileText, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, Send, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, Webhook, X } from 'lucide-react';
+import { Activity, Ban, BookOpen, Bot, Check, Clipboard, Code2, Eye, EyeOff, FileText, Globe, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, Send, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, Webhook, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
@@ -916,12 +916,18 @@ function ApiKeyPage() {
   const [webhookActive, setWebhookActive] = useState(true);
   const [webhookBusy, setWebhookBusy] = useState(false);
   const [testStatus, setTestStatus] = useState({ loading: false, result: null });
+  const [selectedService, setSelectedService] = useState('website');
+  const [regenService, setRegenService] = useState('website');
   const endpointBase = `${API}/api/v1/payments`;
 
   const load = async () => {
     try {
       const result = await request('/api/dashboard');
       setData(result);
+      if (result.apiKey?.service_type) {
+        setSelectedService(result.apiKey.service_type);
+        setRegenService(result.apiKey.service_type);
+      }
       if (result.webhook) {
         setWebhookUrl(result.webhook.url || '');
         setWebhookSecret(result.webhook.secret || '');
@@ -930,6 +936,32 @@ function ApiKeyPage() {
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
       else setError(e.message);
+    }
+  };
+
+  const createKey = async (isRegenerate = false, serviceToUse = null) => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    const targetService = serviceToUse || (isRegenerate ? regenService : selectedService);
+    try {
+      const result = await request('/api/api-key', {
+        method: 'POST',
+        body: JSON.stringify({ serviceType: targetService })
+      });
+      setApiKey(result.apiKey.key);
+      setKeyVisible(true);
+      setSelectedService(result.apiKey.serviceType || targetService);
+      setRegenService(result.apiKey.serviceType || targetService);
+      setNotice(isRegenerate ? 'API key lama diganti dengan API key baru.' : 'API key siap digunakan.');
+      setShowRegenerateModal(false);
+      await load();
+      return result.apiKey.key;
+    } catch (e) {
+      setError(e.message);
+      return '';
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -980,26 +1012,6 @@ function ApiKeyPage() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const createKey = async (isRegenerate = false) => {
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      const result = await request('/api/api-key', { method: 'POST' });
-      setApiKey(result.apiKey.key);
-      setKeyVisible(true);
-      setNotice(isRegenerate ? 'API key lama dihapus dan diganti dengan API key baru.' : 'API key siap digunakan.');
-      setShowRegenerateModal(false);
-      await load();
-      return result.apiKey.key;
-    } catch (e) {
-      setError(e.message);
-      return '';
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const fetchRealKey = async () => {
     setError('');
@@ -1125,6 +1137,64 @@ function ApiKeyPage() {
                 </div>
               )}
             </div>
+
+            {!data.apiKey && (
+              <div style={{ marginTop: 18, marginBottom: 6 }}>
+                <label className="gpy-label" style={{ marginBottom: 8, display: 'block' }}>
+                  Pilih Layanan Integrasi
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedService('website')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: 12,
+                      border: `2px solid ${selectedService === 'website' ? 'var(--green, #29544B)' : '#e5e7eb'}`,
+                      background: selectedService === 'website' ? '#f0fdf4' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: selectedService === 'website' ? 'var(--green, #29544B)' : '#111827' }}>
+                      <Globe size={16} />
+                      <span>Website</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+                      Membutuhkan Webhook URL untuk notifikasi pembayaran lunas secara instan.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedService('bot')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: 12,
+                      border: `2px solid ${selectedService === 'bot' ? 'var(--green, #29544B)' : '#e5e7eb'}`,
+                      background: selectedService === 'bot' ? '#f0fdf4' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: selectedService === 'bot' ? 'var(--green, #29544B)' : '#111827' }}>
+                      <Bot size={16} />
+                      <span>Bot (Telegram / WA)</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+                      Tanpa domain publik. Menggunakan sistem polling status berkala.
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="gpy-actions-row" style={{ justifyContent: 'center' }}>
               {data.apiKey ? (
                 <button className="gpy-btn gpy-btn-secondary" onClick={() => setShowRegenerateModal(true)} disabled={busy}>
@@ -1152,9 +1222,60 @@ function ApiKeyPage() {
                     <X size={16} />
                   </button>
                 </div>
-                <p className="gpy-modal-body">
-                  API Key lama akan dihapus secara permanen dan diganti dengan API Key baru. Semua integrasi yang masih memakai API Key lama tidak akan bisa lagi mengakses endpoint.
+                <p className="gpy-modal-body" style={{ marginBottom: 16 }}>
+                  API Key lama akan dihapus secara permanen dan diganti dengan API Key baru.
                 </p>
+
+                <div style={{ marginBottom: 18, textAlign: 'left' }}>
+                  <label className="gpy-label" style={{ marginBottom: 8, display: 'block' }}>
+                    Jenis Layanan
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setRegenService('website')}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: `2px solid ${regenService === 'website' ? 'var(--green, #29544B)' : '#e5e7eb'}`,
+                        background: regenService === 'website' ? '#f0fdf4' : '#ffffff',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: regenService === 'website' ? 'var(--green, #29544B)' : '#374151'
+                      }}
+                    >
+                      <Globe size={15} />
+                      <span>Website</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRegenService('bot')}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: `2px solid ${regenService === 'bot' ? 'var(--green, #29544B)' : '#e5e7eb'}`,
+                        background: regenService === 'bot' ? '#f0fdf4' : '#ffffff',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: regenService === 'bot' ? 'var(--green, #29544B)' : '#374151'
+                      }}
+                    >
+                      <Bot size={15} />
+                      <span>Bot</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="gpy-modal-actions">
                   <button
                     type="button"
@@ -1167,7 +1288,7 @@ function ApiKeyPage() {
                   <button
                     type="button"
                     className="gpy-btn gpy-btn-primary"
-                    onClick={() => createKey(true)}
+                    onClick={() => createKey(true, regenService)}
                     disabled={busy}
                   >
                     {busy ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Confirm'}
@@ -1177,6 +1298,7 @@ function ApiKeyPage() {
             </div>
           )}
 
+          {data.apiKey && (data.apiKey.service_type || selectedService) === 'website' && (
           <section className="gpy-panel" id="webhook-config">
             <div className="gpy-panel-head">
               <div>
@@ -1188,10 +1310,6 @@ function ApiKeyPage() {
 
             <p className="gpy-meta-text" style={{ margin: '4px 0 16px', lineHeight: 1.6 }}>
               Kirim notifikasi HTTP POST otomatis ke server kamu seketika saat pembayaran lunas (<code>PAID</code>).
-              <br />
-              <span style={{ color: 'var(--muted)', fontSize: '12.5px' }}>
-                * Jika sistem kamu adalah bot Telegram / WhatsApp tanpa domain publik, biarkan kosong dan gunakan metode polling <code>GET /api/v1/payments/:trxId</code>.
-              </span>
             </p>
 
             <label className="gpy-label" htmlFor="webhook-url-input">Webhook URL</label>
@@ -1271,6 +1389,7 @@ function ApiKeyPage() {
               </button>
             </div>
           </section>
+          )}
 
           <ApiKeySandboxCard
             apiKey={keyVisible ? apiKey : ''}

@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS qris_configs (
 CREATE TABLE IF NOT EXISTS api_keys (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  service_type ENUM('website', 'bot') NOT NULL DEFAULT 'website',
   encrypted_key TEXT NOT NULL,
   key_prefix VARCHAR(16) NOT NULL,
   key_hash CHAR(64) NULL,
