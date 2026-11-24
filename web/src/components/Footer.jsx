@@ -13,7 +13,6 @@ export function Footer() {
                 Alternate <b>Pay</b>
               </span>
             </a>
-            <p className="footer-tagline">Payment operations, without the busywork.</p>
           </div>
 
           <div className="footer-nav-grid">
