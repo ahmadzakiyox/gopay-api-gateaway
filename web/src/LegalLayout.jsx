@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, FileText, Info, Shield, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, FileText, Info, Shield } from 'lucide-react';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
@@ -68,13 +68,6 @@ export function LegalLayout({ activeTab, title, tagline, date, user, onLogout, c
 
           <div className="legal-content-card">
             {children}
-
-            <div className="legal-meta-bottom">
-              <span>&copy; 2026 AlternatePay &bull; All rights reserved</span>
-              <a href="/dashboard">
-                <ArrowLeft size={14} /> Kembali ke Dashboard
-              </a>
-            </div>
           </div>
         </div>
       </main>
