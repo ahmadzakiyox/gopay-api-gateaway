@@ -311,6 +311,18 @@
   color: #285846;
 }
 
+.gpy-btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.gpy-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
 .gpy-btn-full {
   width: 100%;
   margin-top: 10px;

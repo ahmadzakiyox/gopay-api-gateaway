@@ -499,6 +499,15 @@ app.post('/api/gopay/connect/verify', requireUser, async (req, res) => {
   }
 });
 
+app.post('/api/gopay/logout', requireUser, async (req, res) => {
+  await pool.execute(
+    "UPDATE gopay_accounts SET phone_number=NULL, merchant_id=NULL, merchant_name=NULL, owner_name=NULL, encrypted_session=NULL, status='disconnected', last_error=NULL WHERE user_id=?",
+    [req.user.id]
+  );
+  await audit(req.user.id, 'gopay_disconnected');
+  return res.json({ success: true, status: 'disconnected' });
+});
+
 app.get('/api/activity', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT action, metadata, created_at FROM activity_logs WHERE user_id=? ORDER BY id DESC LIMIT 50', [req.user.id]); res.json({ success: true, items: rows }); });
 
 app.use((error, _req, res, _next) => { console.error('unhandled:', error); fail(res, 500, 'Terjadi kesalahan internal'); });

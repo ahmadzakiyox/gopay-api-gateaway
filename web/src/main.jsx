@@ -34,136 +34,6 @@ function Row({ icon: Icon, label, value, status, valueClass }) {
     </div>
   );
 }
-function SimulateCard({ onDone }) {
-  const [amount, setAmount] = useState('');
-  const [payment, setPayment] = useState(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [pollError, setPollError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const create = async (e) => {
-    e.preventDefault();
-    setBusy(true); setError(''); setPollError(''); setPayment(null); setSecondsLeft(0);
-    try {
-      const result = await request('/api/v1/payments', { method: 'POST', body: JSON.stringify({ orderId: `sim-${Date.now()}`, amount: Number(amount) }) });
-      setPayment(result.payment);
-      setSecondsLeft(300);
-      if (onDone) onDone();
-    } catch (err) { setError(err.message); } finally { setBusy(false); }
-  };
-  useEffect(() => {
-    if (!payment || payment.status !== 'pending' || secondsLeft <= 0) return undefined;
-    let active = true;
-    const poll = async () => {
-      try {
-        const result = await request(`/api/payments/${payment.trxId}`);
-        if (!active) return;
-        setPollError('');
-        setPayment(result.payment);
-      } catch {
-        if (active) setPollError('Status pembayaran belum bisa diperiksa. Mencoba lagi otomatis…');
-      }
-    };
-    const tick = setInterval(() => {
-      setSecondsLeft((s) => Math.max(0, s - 5));
-      poll();
-    }, 5000);
-    return () => { active = false; clearInterval(tick); };
-  }, [payment && payment.trxId, payment && payment.status, secondsLeft > 0]);
-  const statusLabel = !payment ? '' : payment.status === 'paid' ? 'Lunas' : payment.status === 'expired' ? 'Kedaluwarsa' : 'Menunggu';
-  const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
-  const progress = Math.max(0, Math.min(100, (secondsLeft / 300) * 100));
-  const quickAmounts = [10000, 25000, 50000, 100000];
-  const copyPayload = async () => {
-    try { await navigator.clipboard.writeText(payment.qris); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ }
-  };
-  return (
-    <section className="gpy-panel" id="simulate">
-      <div className="gpy-panel-head">
-        <div>
-          <p className="gpy-section-label">03 / SIMULATION</p>
-          <h3>Simulasi transaksi</h3>
-        </div>
-        <QrCode size={18} />
-      </div>
-      <p className="gpy-desc">Buat QRIS dinamis dari nominal ini, lalu bayar lewat aplikasi GoPay. Status dicek otomatis selama 5 menit.</p>
-      {!payment && (
-        <form onSubmit={create} className="gpy-form">
-          <label className="gpy-label" htmlFor="sim-amount">Nominal</label>
-          <div className="gpy-amount-field">
-            <span>Rp</span>
-            <input id="sim-amount" value={amount ? Number(amount).toLocaleString('id-ID') : ''} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="0" inputMode="numeric" autoComplete="off" />
-          </div>
-          <div className="gpy-chips">
-            {quickAmounts.map((value) => (
-              <button type="button" key={value} className={`gpy-chip ${Number(amount) === value ? 'is-active' : ''}`} onClick={() => setAmount(String(value))}>
-                {value >= 1000 ? `${value / 1000}rb` : value}
-              </button>
-            ))}
-          </div>
-          <div className="gpy-actions-row">
-            <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
-              {busy ? <><Loader2 size={15} className="gpy-spin" /> Membuat QRIS…</> : <>Buat QRIS <QrCode size={15} /></>}
-            </button>
-          </div>
-        </form>
-      )}
-      {payment && (
-        <div className="gpy-sim-result">
-          <div className="gpy-sim-head">
-            <div className="gpy-sim-head-main">
-              <span className="gpy-sim-amount">Rp{payment.payableAmount.toLocaleString('id-ID')}</span>
-              <small>Nominal dasar Rp{payment.baseAmount.toLocaleString('id-ID')} + penanda {payment.surcharge}</small>
-            </div>
-            <span className={`gpy-pill ${payment.status === 'paid' ? 'connected' : ''}`}>{statusLabel}</span>
-          </div>
-          {payment.status === 'pending' && (
-            <div className="gpy-sim-timer">
-              <div className="gpy-sim-timer-label">
-                <span>Berlaku sampai</span>
-                <b>{countdown}</b>
-              </div>
-              <div className="gpy-sim-progress"><span style={{ width: `${progress}%` }} /></div>
-            </div>
-          )}
-          {payment.status === 'paid' ? (
-            <div className="gpy-payment-success" role="status" aria-live="polite">
-              <Check size={26} />
-              <div>
-                <strong>Pembayaran berhasil</strong>
-                <span>Pembayaran GoPay sudah terkonfirmasi.</span>
-              </div>
-            </div>
-          ) : payment.status === 'pending' ? (
-            <div className="gpy-sim-qr-box">
-              <div className="gpy-sim-qr-frame">
-                <img className="gpy-sim-qr" alt="QRIS dinamis" src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=0&data=${encodeURIComponent(payment.qris)}`} />
-              </div>
-              <p className="gpy-sim-hint">Pindai kode ini lewat aplikasi GoPay atau m-banking.</p>
-              <div className="gpy-sim-payload">
-                <code>{payment.qris}</code>
-                <button type="button" onClick={copyPayload} aria-label="Salin payload QRIS">
-                  {copied ? <Check size={14} /> : <Clipboard size={14} />}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="gpy-sim-empty">
-              <X size={22} />
-              <p>Waktu pembayaran habis. Buat transaksi baru untuk mencoba lagi.</p>
-            </div>
-          )}
-          {pollError && payment.status === 'pending' && <p className="gpy-warning-text" role="status">{pollError}</p>}
-          <button className="gpy-btn gpy-btn-secondary gpy-btn-block" onClick={() => { setPayment(null); setAmount(''); setSecondsLeft(0); setPollError(''); }}>
-            <RefreshCw size={14} /> Buat transaksi baru
-          </button>
-        </div>
-      )}
-      {error && <p className="gpy-warning-text">{error}</p>}
-    </section>
-  );
-}
 
 function decodeWithScale(img, scale, smoothing) {
   const canvas = document.createElement('canvas');
@@ -346,6 +216,8 @@ function GoPayManagement() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [loggingOutGopay, setLoggingOutGopay] = useState(false);
 
   const load = async () => {
     try {
@@ -394,12 +266,34 @@ function GoPayManagement() {
     }
   };
 
+  const logoutGoPay = async () => {
+    setLoggingOutGopay(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/gopay/logout', { method: 'POST' });
+      setLogoutModalOpen(false);
+      setOtp('');
+      setOtpSent(false);
+      setPhone('');
+      setNotice('Berhasil logout dari akun GoPay.');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoggingOutGopay(false);
+    }
+  };
+
   const logout = async () => {
     await request('/api/auth/logout', { method: 'POST' });
     window.location.href = '/';
   };
 
   if (!data) return <div className="loading">Memuat workspace…</div>;
+
+  const isConnected = data.gopay.status === 'connected';
+  const showQrisCard = isConnected && !data.qris.configured;
 
   return (
     <div className="page-shell">
@@ -428,12 +322,18 @@ function GoPayManagement() {
             )}
             <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
             <Row
+              icon={QrCode}
+              label="String Qris"
+              value={data.qris.configured ? 'Oke' : 'Belum diatur'}
+              valueClass={data.qris.configured ? 'gpy-status-active' : ''}
+            />
+            <Row
               icon={ShieldCheck}
               label="Session"
-              value={data.gopay.status === 'connected' ? 'Active' : 'Belum terhubung'}
-              valueClass={data.gopay.status === 'connected' ? 'gpy-status-active' : ''}
+              value={isConnected ? 'Active' : 'Belum terhubung'}
+              valueClass={isConnected ? 'gpy-status-active' : ''}
             />
-            {data.gopay.status !== 'connected' && !otpSent && (
+            {!isConnected && !otpSent && (
               <form onSubmit={startGoPay} className="gpy-form">
                 <label className="gpy-label" htmlFor="phone">Nomor GoPay/GoBiz</label>
                 <input className="gpy-input" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
@@ -442,7 +342,7 @@ function GoPayManagement() {
                 </button>
               </form>
             )}
-            {data.gopay.status !== 'connected' && otpSent && (
+            {!isConnected && otpSent && (
               <form onSubmit={verifyGoPay} className="gpy-form">
                 <label className="gpy-label" htmlFor="otp">Kode OTP</label>
                 <input className="gpy-input" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
@@ -451,16 +351,65 @@ function GoPayManagement() {
                 </button>
               </form>
             )}
-            {data.gopay.status === 'connected' && (
-              <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
-                <RefreshCw size={14} /> Reconnect GoPay
-              </button>
+            {isConnected && (
+              <>
+                <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
+                  <RefreshCw size={14} /> Reconnect GoPay
+                </button>
+                <button
+                  type="button"
+                  className="gpy-btn gpy-btn-danger gpy-btn-full"
+                  onClick={() => setLogoutModalOpen(true)}
+                  disabled={busy || loggingOutGopay}
+                >
+                  <LogOut size={14} /> Logout GoPay
+                </button>
+              </>
             )}
           </section>
 
-          <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
+          {showQrisCard && (
+            <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
+          )}
 
-          <SimulateCard onDone={load} />
+          {logoutModalOpen && (
+            <div className="gpy-modal-backdrop" onClick={() => !loggingOutGopay && setLogoutModalOpen(false)}>
+              <div className="gpy-modal-card" role="dialog" aria-modal="true" aria-labelledby="gopay-logout-title" onClick={(e) => e.stopPropagation()}>
+                <div className="gpy-modal-head">
+                  <h4 id="gopay-logout-title">Logout GoPay?</h4>
+                  <button
+                    type="button"
+                    className="gpy-modal-close"
+                    onClick={() => !loggingOutGopay && setLogoutModalOpen(false)}
+                    aria-label="Tutup modal"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="gpy-modal-body">
+                  Token dan refresh token GoPay Merchant akan dihapus dari sistem. Kamu harus login ulang dengan OTP untuk mengaktifkan koneksi kembali.
+                </p>
+                <div className="gpy-modal-actions">
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-secondary"
+                    onClick={() => setLogoutModalOpen(false)}
+                    disabled={loggingOutGopay}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-danger"
+                    onClick={logoutGoPay}
+                    disabled={loggingOutGopay}
+                  >
+                    {loggingOutGopay ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Konfirmasi'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
       <Footer />
