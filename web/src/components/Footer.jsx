@@ -21,6 +21,14 @@ export function Footer() {
           Alternatif Payment gateway menggunakan QRIS GoPay merchant.
         </p>
 
+        <nav className="site-footer-links" aria-label="Informasi dan Ketentuan">
+          <a href="/about">Tentang Kami</a>
+          <span className="site-footer-dot" aria-hidden="true">&bull;</span>
+          <a href="/privacy">Kebijakan Privasi</a>
+          <span className="site-footer-dot" aria-hidden="true">&bull;</span>
+          <a href="/terms">Syarat & Ketentuan</a>
+        </nav>
+
         <hr className="site-footer-rule" />
 
         <p className="site-footer-legal">

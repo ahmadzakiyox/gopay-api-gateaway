@@ -72,6 +72,32 @@
   text-wrap: pretty;
 }
 
+.site-footer-links {
+  margin: 14px auto 0;
+  max-width: 1180px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.site-footer-links a {
+  color: var(--footer-body);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.site-footer-links a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.site-footer-dot {
+  color: var(--footer-line);
+  font-size: 10px;
+}
+
 .site-footer-rule {
   display: block;
   width: 100%;

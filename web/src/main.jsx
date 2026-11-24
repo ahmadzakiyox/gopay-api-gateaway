@@ -7,6 +7,9 @@ import './studio-dashboard.css';
 import './gpy-management.css';
 import StudioTransactionDashboard from './StudioTransactionDashboard';
 import DocumentsPage from './DocumentsPage';
+import AboutPage from './AboutPage';
+import PrivacyPage from './PrivacyPage';
+import TermsPage from './TermsPage';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
@@ -14,7 +17,7 @@ import { Footer } from './components/Footer';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3100';
 async function request(path, options = {}) { const response = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'content-type': 'application/json', ...(options.headers || {}) }, ...options }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Request gagal'); return data; }
 
-function Login() { const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const login = async () => { setLoading(true); setError(''); try { const data = await request('/api/auth/telegram/start'); window.location.href = data.url; } catch (e) { setError(e.message); setLoading(false); } }; return <div className="page-shell"><LoginHeader /><main className="login-shell"><div className="login-mark"><span>AP</span><span>ALTERNATE PAY</span></div><div className="login-copy"><p className="eyebrow">PAYMENT GATEWAY</p><h1>Payment operations,<br /><em>without the busywork.</em></h1><p className="lede">Kelola koneksi GoPay, QRIS dinamis, dan API integrasi dari satu workspace yang jelas.</p><button className="primary" onClick={login} disabled={loading}>{loading ? 'Membuka Telegram…' : 'Login dengan Telegram'} <Link2 size={17} /></button>{error && <p className="error" role="alert">{error}</p>}<p className="legal">Dengan melanjutkan, kamu menyetujui penggunaan layanan sesuai ketentuan yang berlaku.</p></div></main><Footer /></div> ; }
+function Login() { const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const login = async () => { setLoading(true); setError(''); try { const data = await request('/api/auth/telegram/start'); window.location.href = data.url; } catch (e) { setError(e.message); setLoading(false); } }; return <div className="page-shell"><LoginHeader /><main className="login-shell"><div className="login-mark"><span>AP</span><span>ALTERNATE PAY</span></div><div className="login-copy"><p className="eyebrow">PAYMENT GATEWAY</p><h1>Payment operations,<br /><em>without the busywork.</em></h1><p className="lede">Kelola koneksi GoPay, QRIS dinamis, dan API integrasi dari satu workspace yang jelas.</p><button className="primary" onClick={login} disabled={loading}>{loading ? 'Membuka Telegram…' : 'Login dengan Telegram'} <Link2 size={17} /></button>{error && <p className="error" role="alert">{error}</p>}<p className="legal">Dengan melanjutkan, kamu menyetujui <a href="/terms">Syarat & Ketentuan</a> dan <a href="/privacy">Kebijakan Privasi</a> kami.</p></div></main><Footer /></div> ; }
 
 function Row({ icon: Icon, label, value, status, valueClass }) {
   return (
@@ -1132,9 +1135,24 @@ function ApiKeyPage() {
 function App() {
   const [auth, setAuth] = useState(null);
   useEffect(() => { request('/api/auth/status').then(setAuth).catch(() => setAuth({ authenticated: false })); }, []);
+
+  const path = window.location.pathname.replace(/\/$/, '');
+  const isAbout = path === '/about' || path === '/tentang-kami';
+  const isPrivacy = path === '/privacy' || path === '/kebijakan-privasi';
+  const isTerms = path === '/terms' || path === '/syarat-ketentuan';
+
+  const logout = async () => {
+    try { await request('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
+    window.location.href = '/';
+  };
+
+  if (isAbout) return <AboutPage user={auth?.user} onLogout={logout} />;
+  if (isPrivacy) return <PrivacyPage user={auth?.user} onLogout={logout} />;
+  if (isTerms) return <TermsPage user={auth?.user} onLogout={logout} />;
+
   if (!auth) return <div className="loading">Memuat…</div>;
   if (!auth.authenticated) return <Login />;
-  const path = window.location.pathname.replace(/\/$/, '');
+
   if (path === '/gpy-manager') return <GoPayManagement />;
   if (path === '/apikey') return <ApiKeyPage />;
   if (path === '/documents') return <DocumentsPage request={request} user={auth.user || {}} />;
