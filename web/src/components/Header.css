@@ -270,12 +270,24 @@
   transform: translateY(0);
 }
 
+.mobile-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 20px;
+  border-bottom: 1px solid #e5e5e7;
+}
+
+.mobile-menu-profile .nav-profile-name {
+  font-size: 13px;
+}
+
 .mobile-menu-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 24px;
-  font-size: 15px;
+  gap: 12px;
+  padding: 13px 20px;
+  font-size: 13px;
   font-weight: 500;
   color: #1a1a1a;
   border-bottom: 1px solid #e5e5e7;
@@ -285,7 +297,11 @@
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
   text-decoration: none;
-  min-height: 52px;
+  min-height: 46px;
+}
+
+.mobile-menu-item.logout-item {
+  border-top: 1px solid #e5e5e7;
 }
 
 .mobile-menu-item:last-child {

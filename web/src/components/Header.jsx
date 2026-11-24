@@ -74,31 +74,30 @@ export function Header({ onLogout, managementMode = false, user = null }) {
       </aside>
       {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
       <div ref={menuRef} className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        <a href="/dashboard" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
-          <Activity size={20} />
-          <span>Dashboard</span>
-        </a>
-        <a href="/gpy-manager" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
-          <WalletCards size={20} />
-          <span>GoPay Management</span>
-        </a>
-        <a href="/apikey" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
-          <KeyRound size={20} />
-          <span>Api Key</span>
-        </a>
-        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
-          <FileText size={20} />
-          <span>Doc</span>
-        </a>
         <div className="mobile-menu-profile">
           <span className="nav-profile-avatar">{avatarLetter}</span>
           <div className="nav-profile-info">
             <span className="nav-profile-name">{displayName}</span>
-            <span className="nav-profile-sub">Personal workspace</span>
           </div>
         </div>
+        <a href="/dashboard" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <Activity size={18} />
+          <span>Dashboard</span>
+        </a>
+        <a href="/gpy-manager" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <WalletCards size={18} />
+          <span>GoPay Management</span>
+        </a>
+        <a href="/apikey" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <KeyRound size={18} />
+          <span>Api Key</span>
+        </a>
+        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <FileText size={18} />
+          <span>Doc</span>
+        </a>
         <button className="mobile-menu-item logout-item" onClick={handleLogout}>
-          <LogOut size={20} />
+          <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>
