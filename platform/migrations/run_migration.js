@@ -40,6 +40,16 @@ async function run() {
   `);
   console.log('webhook_configs table ready');
 
+  const [keyCols] = await pool.query(
+    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='api_keys' AND COLUMN_NAME='service_type'"
+  );
+  if (!keyCols.length) {
+    await pool.query("ALTER TABLE api_keys ADD COLUMN service_type ENUM('website', 'bot') NOT NULL DEFAULT 'website' AFTER user_id");
+    console.log('Column service_type added to api_keys');
+  } else {
+    console.log('api_keys service_type column already exists');
+  }
+
   await pool.end();
   console.log('Migration completed successfully');
 }
