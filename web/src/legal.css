@@ -1,218 +1,444 @@
-/* Legal pages styling: About, Privacy, Terms */
+/* ==========================================================================
+   Legal & Information Pages (About, Privacy Policy, Terms of Service)
+   Style direction: Foodnoms / POS Kedai (KedaiVPN/website-pos-kedai)
+   Clean white canvas, bg-fog #f5f5f7, generous spacing, 24px rounded cards,
+   two-tone headlines, and prominent disclaimer notices.
+   ========================================================================== */
 
-.legal-shell {
+:root {
+  --pk-primary: #29544B;
+  --pk-primary-dark: #1d3b34;
+  --pk-primary-light: #3a6b60;
+  --pk-orange: #f97316;
+  --pk-text-primary: #1a1a1a;
+  --pk-text-secondary: #6b6b6b;
+  --pk-text-tertiary: #999999;
+  --pk-bg-canvas: #ffffff;
+  --pk-bg-fog: #f5f5f7;
+  --pk-border-subtle: #e5e5e7;
+  --pk-radius-card: 24px;
+  --pk-radius-pill: 999px;
+  --pk-shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --pk-shadow-card: 0 12px 48px rgba(0, 0, 0, 0.12);
+}
+
+.legal-page-shell {
   min-height: 100vh;
-  background: #f8f9fb;
-  color: #17191d;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: var(--pk-bg-fog);
+  color: var(--pk-text-primary);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.legal-container {
-  min-width: 0;
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 36px 20px 60px;
-}
-
-@media (max-width: 768px) {
-  .legal-container {
-    padding: 24px 16px 48px;
+/* Match desktop layout: if sidebar header is present, adjust offset */
+@media (min-width: 769px) {
+  .legal-page-shell:has(> .workspace-nav) .legal-page {
+    margin-left: 220px;
   }
 }
 
-/* Tab Navigation between legal pages */
-.legal-tabs {
+.legal-page {
+  padding: 60px 0 90px;
+  min-height: 100vh;
+  background: var(--pk-bg-fog);
+}
+
+@media (max-width: 768px) {
+  .legal-page {
+    padding: 32px 0 60px;
+  }
+}
+
+.legal-container {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (max-width: 640px) {
+  .legal-container {
+    padding: 0 16px;
+  }
+}
+
+/* Floating pill nav bar for switching between legal tabs */
+.legal-nav-wrapper {
   display: flex;
+  justify-content: center;
+  margin-bottom: 36px;
+}
+
+.legal-tabs-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid #e2e5e9;
-  padding-bottom: 12px;
+  background: #e5e7eb;
+  padding: 4px;
+  border-radius: var(--pk-radius-pill);
+  gap: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.legal-tab {
+.legal-tab-item {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #555b65;
+  padding: 8px 18px;
+  border-radius: var(--pk-radius-pill);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pk-text-secondary);
   text-decoration: none;
   background: transparent;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   white-space: nowrap;
 }
 
-.legal-tab:hover {
-  background: #eef1f4;
-  color: #17191d;
+.legal-tab-item:hover {
+  color: var(--pk-text-primary);
 }
 
-.legal-tab.is-active {
-  background: #285846;
-  color: #ffffff;
-  font-weight: 600;
+.legal-tab-item.is-active {
+  background: #ffffff;
+  color: var(--pk-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Page header */
+/* Header inspired by about-header & legal-header */
 .legal-header {
-  margin-bottom: 24px;
-}
-
-.legal-eyebrow {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #285846;
-  margin-bottom: 6px;
+  text-align: center;
+  margin-bottom: 48px;
+  animation: pk-fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .legal-header h1 {
-  font-size: 26px;
-  font-weight: 700;
-  color: #181d24;
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
-}
-
-.legal-header p {
-  font-size: 13px;
-  color: #636b78;
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* Mandatory Unofficial & Risk Disclaimer Box */
-.legal-disclaimer-box {
-  background: #fff9ed;
-  border: 1px solid #f6d289;
-  border-left: 4px solid #d97706;
-  border-radius: 8px;
-  padding: 16px 18px;
-  margin-bottom: 28px;
-  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.05);
-}
-
-.legal-disclaimer-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #92400e;
-  margin-bottom: 8px;
-}
-
-.legal-disclaimer-text {
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: #78350f;
-  margin: 0;
-}
-
-.legal-disclaimer-text strong {
-  color: #451a03;
-  font-weight: 700;
-}
-
-/* Content Panel */
-.legal-card {
-  background: #ffffff;
-  border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  padding: 28px 32px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 14px;
+  color: var(--pk-text-primary);
+  letter-spacing: -0.025em;
 }
 
 @media (max-width: 640px) {
-  .legal-card {
-    padding: 20px 16px;
+  .legal-header h1 {
+    font-size: 28px;
   }
 }
 
-.legal-section {
-  margin-bottom: 28px;
+.legal-header .tagline {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pk-text-secondary);
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
-.legal-section:last-child {
-  margin-bottom: 0;
+.legal-header .date {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pk-text-tertiary);
+  margin-top: 10px;
 }
 
-.legal-section h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a202c;
-  margin: 0 0 12px;
+/* Mandatory Unofficial & Risk Disclaimer Box (Foodnoms / POS Kedai Callout) */
+.legal-disclaimer-card {
+  background: #fff8f0;
+  border: 1px solid #fed7aa;
+  border-left: 5px solid #f97316;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 36px;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.06);
+  animation: pk-fade-in-up 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 640px) {
+  .legal-disclaimer-card {
+    padding: 18px 20px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+}
+
+.legal-disclaimer-head {
   display: flex;
   align-items: center;
   gap: 9px;
-  letter-spacing: -0.01em;
-}
-
-.legal-section p {
   font-size: 13px;
-  line-height: 1.7;
-  color: #374151;
-  margin: 0 0 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c2410c;
+  margin-bottom: 12px;
 }
 
-.legal-section p:last-child {
+.legal-disclaimer-body {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #7c2d12;
+  margin: 0;
+}
+
+.legal-disclaimer-body strong {
+  color: #431407;
+  font-weight: 700;
+}
+
+/* White Content Card (Foodnoms / POS Kedai style) */
+.legal-content-card {
+  background: #ffffff;
+  border-radius: var(--pk-radius-card);
+  padding: 48px;
+  box-shadow: var(--pk-shadow-soft);
+  animation: pk-fade-in-up 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+  border: 1px solid #f0f0f2;
+}
+
+@media (max-width: 640px) {
+  .legal-content-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+}
+
+.legal-content-card h2 {
+  font-size: 21px;
+  font-weight: 700;
+  margin: 36px 0 16px;
+  color: var(--pk-text-primary);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pk-border-subtle);
+  letter-spacing: -0.015em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legal-content-card h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 22px 0 10px;
+  color: var(--pk-text-primary);
+}
+
+.legal-content-card p {
+  font-size: 15px;
+  color: var(--pk-text-secondary);
+  line-height: 1.8;
+  margin-bottom: 18px;
+}
+
+.legal-content-card p:last-child {
   margin-bottom: 0;
 }
 
-.legal-section ul,
-.legal-section ol {
-  margin: 8px 0 14px 20px;
+.legal-content-card ul,
+.legal-content-card ol {
+  margin: 12px 0 22px 22px;
   padding: 0;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #374151;
 }
 
-.legal-section li {
-  margin-bottom: 6px;
+.legal-content-card li {
+  font-size: 14.5px;
+  color: var(--pk-text-secondary);
+  line-height: 1.75;
+  margin-bottom: 10px;
 }
 
-.legal-section li:last-child {
+.legal-content-card li:last-child {
   margin-bottom: 0;
 }
 
-.legal-callout-danger {
+.legal-content-card strong {
+  color: var(--pk-text-primary);
+  font-weight: 700;
+}
+
+.legal-content-card a {
+  color: var(--pk-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.legal-content-card a:hover {
+  text-decoration: underline;
+}
+
+/* Callout Danger Box */
+.legal-callout-warning {
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-left: 3px solid #dc2626;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin: 14px 0;
-  font-size: 12.5px;
-  line-height: 1.6;
+  border-left: 4px solid #ef4444;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin: 22px 0;
+  font-size: 14px;
+  line-height: 1.7;
   color: #991b1b;
 }
 
-.legal-meta-footer {
+.legal-callout-warning strong {
+  color: #7f1d1d;
+}
+
+/* ==========================================================================
+   About Page Components from POS Kedai (mission-vision, values, value-item)
+   ========================================================================== */
+
+.mission-vision {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 36px 0;
+}
+
+@media (max-width: 640px) {
+  .mission-vision {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.mission-box,
+.vision-box {
+  background: var(--pk-bg-fog);
+  border-radius: 18px;
+  padding: 28px;
+  border-left: 4px solid var(--pk-primary);
+}
+
+.mission-box h3,
+.vision-box h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--pk-text-primary);
+}
+
+.mission-box p,
+.vision-box p {
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.values {
+  background: var(--pk-bg-fog);
+  border-radius: var(--pk-radius-card);
+  padding: 36px;
+  margin: 36px 0;
+}
+
+@media (max-width: 640px) {
+  .values {
+    padding: 24px 16px;
+    border-radius: 18px;
+  }
+}
+
+.values h3 {
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--pk-text-primary);
+  text-align: center;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.value-item {
+  padding: 22px 18px;
+  background: #ffffff;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid #edeef1;
+}
+
+.value-item strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--pk-text-primary);
+}
+
+.value-item span {
+  font-size: 13.5px;
+  color: var(--pk-text-secondary);
+  line-height: 1.6;
+  display: block;
+}
+
+/* Legal Footer Section (Contact / Navigation) */
+.legal-footer {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--pk-border-subtle);
+}
+
+.legal-footer h2 {
+  font-size: 18px;
+  margin: 0 0 14px;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.legal-footer p {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.legal-footer .contact {
+  font-weight: 700;
+  color: var(--pk-text-primary);
+}
+
+.legal-meta-bottom {
   margin-top: 32px;
-  padding-top: 18px;
-  border-top: 1px solid #edf0f3;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 11.5px;
-  color: #8c939f;
+  font-size: 13px;
+  color: var(--pk-text-tertiary);
 }
 
-.legal-meta-footer a {
-  color: #285846;
+.legal-meta-bottom a {
+  color: var(--pk-primary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.legal-meta-bottom a:hover {
   text-decoration: underline;
-  text-underline-offset: 2px;
+}
+
+@keyframes pk-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
