@@ -1,6 +1,6 @@
 export const TRANSACTION_STATUSES = [
   { key: 'paid', label: 'Sukses', color: '#285846' },
-  { key: 'pending', label: 'Pending', color: '#2563eb' },
+  { key: 'pending', label: 'Pending', color: '#d49b35' },
   { key: 'cancelled', label: 'Cancelled', color: '#ea580c' },
   { key: 'expired', label: 'Expired', color: '#c96b61' },
 ];

@@ -770,6 +770,16 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
               <><Play size={14} /> Test Buat QRIS via API Key</>
             )}
           </button>
+          {payment && payment.status === 'pending' && (
+            <button
+              type="button"
+              className="gpy-btn gpy-btn-cancel"
+              onClick={cancelTestPayment}
+              disabled={cancelling}
+            >
+              {cancelling ? <><Loader2 size={14} className="gpy-spin" /> Membatalkan…</> : <><Ban size={14} /> Cancel</>}
+            </button>
+          )}
         </div>
       </form>
 

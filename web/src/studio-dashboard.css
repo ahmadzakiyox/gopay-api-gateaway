@@ -132,7 +132,7 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-shell .transaction-detail .section-toolbar h2{margin:0;flex:1;font-size:16px;font-weight:600;color:#20252a}
 .studio-shell .transaction-detail .section-toolbar button{flex-shrink:0}
 .studio-shell .transaction-detail .payment-badge{display:inline-block;font-size:11px;font-weight:600;color:#166534;background:rgba(22,163,74,.12);text-transform:uppercase;letter-spacing:.01em;margin-bottom:20px;border:none;border-radius:5px;padding:4px 9px}
-.studio-shell .transaction-detail .payment-badge.pending{color:#2563eb;background:rgba(37,99,235,.12)}
+.studio-shell .transaction-detail .payment-badge.pending{color:#946200;background:#fff4df}
 .studio-shell .transaction-detail .payment-badge.cancelled{color:#ea580c;background:rgba(234,88,12,.12)}
 .studio-shell .transaction-detail .payment-badge.expired{color:#991b1b;background:rgba(220,38,38,.12)}
 .studio-shell .transaction-detail dl{display:grid;grid-template-columns:120px 1fr;gap:12px 16px;margin:20px 0}
@@ -141,7 +141,7 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-shell .transaction-detail dd code{font-family:'DM Mono',monospace;font-size:12px;color:#252a30;background:none}
 .studio-shell .transaction-detail small{display:block;margin-top:20px;padding-top:16px;border-top:1px solid #e8eaee;font-size:11px;color:#727983}
 .studio-table .payment-badge.paid{color:#166534;background:rgba(22,163,74,.12);border:none}
-.studio-table .payment-badge.pending{color:#2563eb;background:rgba(37,99,235,.12);border:none}
+.studio-table .payment-badge.pending{color:#946200;background:#fff4df;border:none}
 .studio-table .payment-badge.cancelled{color:#ea580c;background:rgba(234,88,12,.12);border:none}
 .studio-table .payment-badge.expired{color:#991b1b;background:rgba(220,38,38,.12);border:none}
 @media(max-width:900px){.studio-shell .workspace-nav{width:220px;flex-basis:220px}.studio-dashboard{padding-inline:22px}.studio-metric{padding-inline:13px}.studio-metric strong{font-size:20px}.studio-metric-total strong{font-size:22px}}
