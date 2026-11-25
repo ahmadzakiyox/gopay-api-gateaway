@@ -444,11 +444,11 @@ async function verifyShopeeOtp(challenge, otpCode) {
     data: {}
   });
 
-  console.log('[shopee-verify] detectResp status:', detectResp.status, 'code:', detectResp.data?.code, 'data:', JSON.stringify(detectResp.data));
-
-  if (detectResp.data?.code !== 0) {
+  const detectCode = detectResp.data?.errorCode ?? detectResp.data?.code;
+  const detectMsg = detectResp.data?.errorMsg || detectResp.data?.message || '';
+  if (detectCode !== 0) {
     console.error('[shopee-verify] detectResp error payload:', JSON.stringify(detectResp.data), 'status:', detectResp.status);
-    throw new Error(detectResp.data?.message || `Gagal mendeteksi merchant Shopee (${detectResp.data?.code})`);
+    throw new Error(detectMsg || `Gagal mendeteksi merchant Shopee (${detectCode})`);
   }
 
   const selectMerchant = detectResp.data?.data?.selectMerchant;
