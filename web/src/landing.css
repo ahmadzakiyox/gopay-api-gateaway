@@ -82,7 +82,7 @@
 
 .hero-title {
   font-size: 24px;
-  line-height: 1.3;
+  line-height: 1.35;
   font-weight: 750;
   letter-spacing: -0.025em;
   color: #111827;
@@ -91,12 +91,16 @@
   text-wrap: balance;
 }
 
+.rotating-text-row {
+  display: block;
+  margin: 2px 0;
+}
+
 .rotating-text-wrapper {
   display: inline-block;
   color: #29544B;
   position: relative;
-  min-width: 140px;
-  text-align: left;
+  text-align: center;
 }
 
 .rotating-text-word {
@@ -523,7 +527,7 @@
 
 /* ================== STEPS SECTION ================== */
 .steps-section {
-  padding: 48px 0;
+  padding: 48px 0 72px;
   background: #ffffff;
 }
 

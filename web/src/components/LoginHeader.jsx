@@ -1,9 +1,44 @@
-import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { HelpCircle, Shield, FileCheck } from 'lucide-react';
 import './Header.css';
 
 export function LoginHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   return (
     <>
@@ -16,35 +51,44 @@ export function LoginHeader() {
 
           {/* Desktop Nav Links */}
           <nav className="login-nav-desktop">
-            <a href="/#keunggulan" className="login-nav-link">Keunggulan</a>
-            <a href="/#fitur" className="login-nav-link">Fitur</a>
-            <a href="/#cara-kerja" className="login-nav-link">Cara Kerja</a>
             <a href="/faq" className="login-nav-link">FAQ</a>
-            <a href="/about" className="login-nav-link">Tentang</a>
+            <a href="/privacy" className="login-nav-link">Kebijakan Privasi</a>
+            <a href="/terms" className="login-nav-link">Syarat & Ketentuan</a>
           </nav>
 
-          {/* Mobile Hamburger Toggle */}
+          {/* Mobile Hamburger Toggle (Same as Dashboard) */}
           <button 
-            type="button" 
-            className="login-mobile-toggle" 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle navigation menu"
+            ref={buttonRef} 
+            className={`hamburger-btn login-hamburger-btn ${menuOpen ? 'open' : ''}`} 
+            onClick={() => setMenuOpen(!menuOpen)} 
+            aria-label="Menu" 
+            aria-expanded={menuOpen}
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            <div className="hamburger-icon">
+              <span className="bar bar1"></span>
+              <span className="bar bar2"></span>
+              <span className="bar bar3"></span>
+            </div>
           </button>
         </div>
       </header>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="login-mobile-drawer">
-          <a href="/#keunggulan" className="drawer-nav-link" onClick={() => setMobileMenuOpen(false)}>Keunggulan</a>
-          <a href="/#fitur" className="drawer-nav-link" onClick={() => setMobileMenuOpen(false)}>Fitur</a>
-          <a href="/#cara-kerja" className="drawer-nav-link" onClick={() => setMobileMenuOpen(false)}>Cara Kerja</a>
-          <a href="/faq" className="drawer-nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-          <a href="/about" className="drawer-nav-link" onClick={() => setMobileMenuOpen(false)}>Tentang</a>
-        </div>
-      )}
+      {/* Mobile Drawer (Same style and animation as Dashboard) */}
+      {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
+      <div ref={menuRef} className={`mobile-menu login-mobile-menu ${menuOpen ? 'open' : ''}`}>
+        <a href="/faq" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <HelpCircle size={18} />
+          <span>FAQ</span>
+        </a>
+        <a href="/privacy" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <Shield size={18} />
+          <span>Kebijakan Privasi</span>
+        </a>
+        <a href="/terms" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <FileCheck size={18} />
+          <span>Syarat & Ketentuan</span>
+        </a>
+      </div>
     </>
   );
 }

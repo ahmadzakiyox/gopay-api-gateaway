@@ -64,13 +64,14 @@ export function LandingPage({ onLogin, loading, error }) {
             </div>
 
             <h1 className="hero-title" data-reveal>
-              Terima Pembayaran QRIS untuk{' '}
-              <span className="rotating-text-wrapper">
-                <span className="rotating-text-word" key={wordIndex}>
-                  {words[wordIndex]}
+              Terima Pembayaran QRIS untuk
+              <div className="rotating-text-row">
+                <span className="rotating-text-wrapper">
+                  <span className="rotating-text-word" key={wordIndex}>
+                    {words[wordIndex]}
+                  </span>
                 </span>
-              </span>
-              <br />
+              </div>
               Langsung ke Rekening GoPay Kamu
             </h1>
 
@@ -321,30 +322,6 @@ export function LandingPage({ onLogin, loading, error }) {
                   Pelanggan membayar via QRIS, dan transaksi otomatis berstatus lunas tanpa perlu memeriksa mutasi secara manual.
                 </p>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* BOTTOM CTA BANNER */}
-        <section className="landing-cta-banner" data-reveal>
-          <div className="landing-container">
-            <div className="cta-banner-box">
-              <h2 className="cta-banner-title">Siap Mengotomatiskan Pembayaran Bisnis Kamu?</h2>
-              <p className="cta-banner-desc">
-                Masuk sekarang menggunakan akun Telegram dan mulai integrasikan QRIS ke aplikasimu.
-              </p>
-              <button 
-                type="button" 
-                className="landing-btn-banner" 
-                onClick={onLogin} 
-                disabled={loading}
-              >
-                <span>{loading ? 'Membuka Telegram…' : 'Masuk dengan Telegram'}</span>
-                <ArrowRight size={16} />
-              </button>
-              <p className="cta-legal-note">
-                Dengan melanjutkan, kamu menyetujui <a href="/terms">Syarat & Ketentuan</a> dan <a href="/privacy">Kebijakan Privasi</a> kami.
-              </p>
             </div>
           </div>
         </section>
