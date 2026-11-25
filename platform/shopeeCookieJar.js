@@ -127,8 +127,9 @@ class ShopeeCookieJar {
     const u = new URL(requestUrl);
     const host = canonicalHost(u.hostname);
     const now = Date.now();
+    const targetName = String(name).toLowerCase();
     for (const c of this.cookies) {
-      if (c.name === name) {
+      if (c.name.toLowerCase() === targetName) {
         if (c.expires > 0 && c.expires < now) continue;
         if (domainMatch(host, c.domain)) return c.value;
       }

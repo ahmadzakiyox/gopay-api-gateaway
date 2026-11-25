@@ -40,7 +40,7 @@ module.exports = {
 
   // Cookies
   LiveTokenCookie: '__shopee_partner_website_x_token_live',
-  ClientIDCookie: 'spc_clientid',
+  ClientIDCookie: 'SPC_CLIENTID',
 
   // Feed & stores
   CompletedTransactionStatus: 3,

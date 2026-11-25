@@ -407,9 +407,16 @@ async function verifyShopeeOtp(challenge, otpCode) {
     throw new Error('Shopee mengembalikan session akun yang tidak lengkap');
   }
 
-  const spcClientId = jar.get(ClientIDCookie, AccountBaseURL);
+  let spcClientId = jar.get(ClientIDCookie, AccountBaseURL) || jar.get('spc_clientid', AccountBaseURL) || jar.get('SPC_CLIENTID', PartnerBaseURL) || jar.get('spc_clientid', PartnerBaseURL);
   if (!spcClientId) {
-    throw new Error('Shopee tidak mengembalikan client session ID (spc_clientid)');
+    // Generate UUID v4 format as fallback SPC_CLIENTID if cookie was omitted by Shopee response
+    spcClientId = crypto.randomUUID();
+    jar.setCookie({
+      name: ClientIDCookie,
+      value: spcClientId,
+      domain: 'shopee.co.id',
+      path: '/'
+    });
   }
 
   // 3. Follow account login redirect
