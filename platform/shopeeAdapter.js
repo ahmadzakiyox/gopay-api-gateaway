@@ -235,7 +235,7 @@ async function requestShopeeOtp(phoneNumber, password = '', opts = {}) {
   const client = new ShopeeHttpClient();
 
   // 1. Bootstrap anonymous account cookies
-  await client.followGet(`${AccountBaseURL}/login`, {
+  await client.followGet(`${AccountBaseURL}/login?lang=${DefaultLanguage}`, {
     ...BrowserHeaders,
     'Accept': 'text/html'
   });
@@ -333,10 +333,18 @@ async function requestShopeeOtp(phoneNumber, password = '', opts = {}) {
     throw new Error(sendResp.data?.msg || `Shopee gagal mengirimkan OTP (${sendResp.data?.error})`);
   }
 
+  const seed = sendResp.data?.data?.seed || '';
+  if (!seed) {
+    console.warn(`[shopee-otp] Shopee reported success but returned empty seed for ${phone}. Delivery may be delayed or suppressed by Shopee fraud score.`);
+  } else {
+    console.log(`[shopee-otp] Shopee OTP sent successfully with delivery seed for ${phone}`);
+  }
+
   return {
     version: 1,
     phoneNumber: phone,
     channel,
+    seed,
     availableChannels,
     deviceFingerprint: fingerprint,
     hasPassword,
