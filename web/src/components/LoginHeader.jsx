@@ -51,10 +51,10 @@ export function LoginHeader() {
 
           {/* Desktop Nav Links */}
           <nav className="login-nav-desktop">
-            <a href="/documents" className="login-nav-link">Dokumentasi API</a>
             <a href="/faq" className="login-nav-link">FAQ</a>
             <a href="/privacy" className="login-nav-link">Kebijakan Privasi</a>
             <a href="/terms" className="login-nav-link">Syarat & Ketentuan</a>
+            <a href="/documents" className="login-nav-link">Dokumentasi API</a>
           </nav>
 
           {/* Mobile Hamburger Toggle (Same as Dashboard) */}
@@ -77,10 +77,6 @@ export function LoginHeader() {
       {/* Mobile Drawer (Same style and animation as Dashboard) */}
       {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
       <div ref={menuRef} className={`mobile-menu login-mobile-menu ${menuOpen ? 'open' : ''}`}>
-        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
-          <FileCode2 size={18} />
-          <span>Dokumentasi API</span>
-        </a>
         <a href="/faq" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <HelpCircle size={18} />
           <span>FAQ</span>
@@ -92,6 +88,10 @@ export function LoginHeader() {
         <a href="/terms" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <FileCheck size={18} />
           <span>Syarat & Ketentuan</span>
+        </a>
+        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <FileCode2 size={18} />
+          <span>Dokumentasi API</span>
         </a>
       </div>
     </>
