@@ -122,14 +122,13 @@ export function LandingPage({ onLogin, loading, error }) {
                       <span>CREATE TRANSACTION (POST)</span>
                     </div>
                     <pre className="preview-code-block">
-                      <code>{`// 1. Backend kamu request payment
-const res = await fetch('/api/v1/payments', {
+                      <code>{`const res = await fetch('/api/v1/payments', {
   method: 'POST',
   headers: {
-    'X-API-Key': 'gpg_live_••••••••••••'
+    'X-API-Key': 'gpg_live_••••••'
   },
   body: JSON.stringify({
-    orderId: 'INV-2026-904',
+    orderId: 'INV-904',
     amount: 50000,
     webhookUrl: 'https://api.toko.com/cb'
   })
