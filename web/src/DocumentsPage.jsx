@@ -318,7 +318,7 @@ export default function DocumentsPage({ request, user }) {
               <div className="gpy-doc-param">
                 <code>webhookUrl</code>
                 <span className="gpy-doc-opt" style={{ color: 'var(--muted)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>opsional</span>
-                <p>URL callback notifikasi khusus untuk pesanan ini. Jika tidak diisi, sistem menggunakan Webhook URL default yang tersimpan di menu Api Key.</p>
+                <p>URL callback notifikasi khusus untuk pesanan ini (wajib HTTPS publik). Jika tidak diisi, sistem menggunakan Webhook URL default yang tersimpan di menu Api Key.</p>
               </div>
             </div>
 

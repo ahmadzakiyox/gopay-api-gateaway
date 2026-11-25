@@ -1,7 +1,40 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { buildWebhookPayload, signWebhookPayload, sendWebhook } = require('../webhook');
+const { validateWebhookUrl, buildWebhookPayload, signWebhookPayload, sendWebhook } = require('../webhook');
+
+test('validateWebhookUrl validates HTTPS and blocks SSRF / private IP targets', () => {
+  // Safe valid HTTPS URL
+  const validResult = validateWebhookUrl('https://example.com/api/webhook');
+  assert.equal(validResult.valid, true);
+
+  // Rejects insecure HTTP by default (unless explicitly allowed)
+  const httpResult = validateWebhookUrl('http://example.com/api/webhook');
+  assert.equal(httpResult.valid, false);
+  assert.match(httpResult.error, /HTTPS/);
+
+  // Allows HTTP when allowInsecureHttp: true
+  const devResult = validateWebhookUrl('http://example.com/api/webhook', { allowInsecureHttp: true });
+  assert.equal(devResult.valid, true);
+
+  // Blocks localhost
+  const localhostResult = validateWebhookUrl('http://localhost:3000/hook', { allowInsecureHttp: true });
+  assert.equal(localhostResult.valid, false);
+  assert.match(localhostResult.error, /localhost/);
+
+  // Blocks 127.0.0.1
+  const loopbackResult = validateWebhookUrl('http://127.0.0.1:8080/hook', { allowInsecureHttp: true });
+  assert.equal(loopbackResult.valid, false);
+  assert.match(loopbackResult.error, /privat|loopback/);
+
+  // Blocks private 192.168.x.x
+  const privateResult = validateWebhookUrl('https://192.168.1.1/hook');
+  assert.equal(privateResult.valid, false);
+
+  // Blocks AWS/GCP cloud metadata IP 169.254.169.254
+  const metadataResult = validateWebhookUrl('https://169.254.169.254/latest/meta-data');
+  assert.equal(metadataResult.valid, false);
+});
 
 test('buildWebhookPayload formats payment details accurately', () => {
   const payment = {

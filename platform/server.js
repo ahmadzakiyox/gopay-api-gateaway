@@ -16,7 +16,7 @@ const { generateDynamicQRIS, validateQris } = require('./qris');
 const { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
-const { buildWebhookPayload, sendWebhook } = require('./webhook');
+const { validateWebhookUrl, buildWebhookPayload, sendWebhook } = require('./webhook');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
@@ -413,13 +413,9 @@ app.post('/api/webhook', requireUser, async (req, res) => {
   }
 
   const cleanUrl = url.trim();
-  try {
-    const parsed = new URL(cleanUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return fail(res, 400, 'Webhook URL harus berupa URL HTTP atau HTTPS yang valid');
-    }
-  } catch {
-    return fail(res, 400, 'Format Webhook URL tidak valid');
+  const validation = validateWebhookUrl(cleanUrl, { allowInsecureHttp: !isProduction });
+  if (!validation.valid) {
+    return fail(res, 400, validation.error);
   }
 
   const currentSecret = typeof secret === 'string' && secret.trim()
@@ -452,13 +448,9 @@ app.post('/api/webhook/test', requireUser, async (req, res) => {
     return fail(res, 400, 'Belum ada Webhook URL yang diatur untuk diuji coba');
   }
 
-  try {
-    const parsed = new URL(targetUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return fail(res, 400, 'URL harus menggunakan http: atau https:');
-    }
-  } catch {
-    return fail(res, 400, 'Format URL tidak valid');
+  const validation = validateWebhookUrl(targetUrl, { allowInsecureHttp: !isProduction });
+  if (!validation.valid) {
+    return fail(res, 400, validation.error);
   }
 
   const testPayload = {
@@ -508,7 +500,15 @@ const createPaymentSchema = z.object({
   orderId: requirePositiveId,
   amount: z.coerce.number().int().positive().max(MAX_PAYABLE_AMOUNT - PAYMENT_MIN_SURCHARGE),
   idempotencyKey: z.string().trim().min(1).max(128).optional(),
-  webhookUrl: z.string().trim().url().max(1024).optional()
+  webhookUrl: z.string().trim().max(1024).refine((val) => {
+    if (!val) return true;
+    const res = validateWebhookUrl(val, { allowInsecureHttp: !isProduction });
+    return res.valid;
+  }, {
+    message: isProduction
+      ? 'Webhook URL wajib berupa URL HTTPS publik yang valid (bukan localhost/IP internal)'
+      : 'Webhook URL harus berupa URL publik yang valid (bukan localhost/IP internal)'
+  }).optional()
 });
 
 async function createPaymentForUser(userId, input) {
