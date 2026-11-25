@@ -13,12 +13,29 @@ import TermsPage from './TermsPage';
 import FaqPage from './FaqPage';
 import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
+import { LandingPage } from './LandingPage';
 import { Footer } from './components/Footer';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3100';
 async function request(path, options = {}) { const response = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'content-type': 'application/json', ...(options.headers || {}) }, ...options }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Request gagal'); return data; }
 
-function Login() { const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const login = async () => { setLoading(true); setError(''); try { const data = await request('/api/auth/telegram/start'); window.location.href = data.url; } catch (e) { setError(e.message); setLoading(false); } }; return <div className="page-shell"><LoginHeader /><main className="login-shell"><div className="login-mark"><span>AP</span><span>ALTERNATE PAY</span></div><div className="login-copy"><p className="eyebrow">PAYMENT GATEWAY</p><h1>Payment operations,<br /><em>without the busywork.</em></h1><p className="lede">Kelola koneksi GoPay, QRIS dinamis, dan API integrasi dari satu workspace yang jelas.</p><button className="primary" onClick={login} disabled={loading}>{loading ? 'Membuka Telegram…' : 'Login dengan Telegram'} <Link2 size={17} /></button>{error && <p className="error" role="alert">{error}</p>}<p className="legal">Dengan melanjutkan, kamu menyetujui <a href="/terms">Syarat & Ketentuan</a> dan <a href="/privacy">Kebijakan Privasi</a> kami.</p></div></main><Footer /></div> ; }
+function Login() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const login = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await request('/api/auth/telegram/start');
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
+  };
+
+  return <LandingPage onLogin={login} loading={loading} error={error} />;
+}
 
 function Row({ icon: Icon, label, value, status, valueClass }) {
   return (
