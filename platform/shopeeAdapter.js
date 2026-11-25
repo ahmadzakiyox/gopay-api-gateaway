@@ -749,9 +749,9 @@ async function listShopeeTransactions(session, options = {}) {
         transactionId: txId,
         orderId: String(raw.orderId || raw.referenceId || txId),
         amount,
-        paymentType: 'qris_shopee',
+        paymentType: 'QRIS',
         issuer: 'SHOPEEPAY',
-        status: Number(raw.status || 0) === 3 ? 'SUCCESS' : 'PENDING',
+        status: Number(raw.status || 0) === 3 ? 'SETTLEMENT' : 'PENDING',
         transactionTime: new Date(createTime * 1000).toISOString()
       });
     }
