@@ -108,16 +108,20 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px;min-width:610px;table-layout:fixed}
 .studio-table th{padding:10px 9px;background:#f8f9fa;border-block:1px solid var(--studio-border);color:#727983;font-size:9px;font-weight:550;text-align:left;word-break:break-word}
 .studio-table td{padding:11px 9px;border-bottom:1px solid #eff0f2;color:#565d66;overflow:hidden;text-overflow:ellipsis}
-.studio-table th:nth-child(1){width:34%}
-.studio-table th:nth-child(2){width:16%}
-.studio-table th:nth-child(3){width:28%}
-.studio-table th:nth-child(4){width:22%;text-align:right}
+.studio-table th:nth-child(1){width:38%}
+.studio-table th:nth-child(2){width:18%}
+.studio-table th:nth-child(3){width:20%}
+.studio-table th:nth-child(4){width:24%;text-align:right}
 .studio-table td:nth-child(4){text-align:right}
 .studio-table tbody tr{cursor:pointer;transition:background .12s}
 .studio-table tbody tr:hover{background:#f5f7f6;box-shadow:inset 3px 0 0 #80998c}
 .studio-table .transaction-link{font-size:10px;color:#2a3037;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .studio-table .transaction-link:hover{color:#285846}
 .studio-table code{font-size:9px;margin-top:3px;color:#8b9098;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-table .tx-created-at{font-size:9px;margin-top:2px;color:#8b9098;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-table .provider-badge{display:inline-block;font-size:9px;padding:3px 7px;border-radius:4px;font-weight:600;text-transform:uppercase;line-height:1.2}
+.studio-table .provider-badge.is-gopay{background:#f0fdf4;color:#166534}
+.studio-table .provider-badge.is-shopee{background:#fff7ed;color:#c2410c}
 .studio-table .payment-badge{display:inline-block;font-size:9px;padding:3px 7px;border-radius:4px;font-weight:600;text-transform:uppercase;line-height:1.2}
 .studio-table .amount-cell{font-size:10px;color:#252a30;font-variant-numeric:tabular-nums;font-weight:500}
 .studio-pagination{min-height:40px;display:flex;align-items:center;justify-content:space-between;padding-top:8px;color:#7c828a;font-size:10px}
