@@ -17,12 +17,21 @@ const { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions,
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
 const { validateWebhookUrl, buildWebhookPayload, sendWebhook } = require('./webhook');
+const { applyMigrations } = require('./migrate');
 
 const app = express();
 const port = Number(process.env.PLATFORM_PORT || 3100);
 const webOrigin = process.env.WEB_ORIGIN || 'http://localhost:5173';
 const isProduction = process.env.NODE_ENV === 'production';
-const pool = mysql.createPool({ host: process.env.MYSQL_HOST, port: Number(process.env.MYSQL_PORT || 3306), user: process.env.MYSQL_USER, password: process.env.MYSQL_PASSWORD, database: process.env.MYSQL_DATABASE, connectionLimit: 10 });
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  port: Number(process.env.MYSQL_PORT || 3306),
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  connectionLimit: 10,
+  multipleStatements: true
+});
 const PAYMENT_EXPIRY_SECONDS = 300;
 const PAYMENT_EXPIRY_MS = PAYMENT_EXPIRY_SECONDS * 1000;
 const DEFAULT_PAYMENT_INTERVAL_MS = Number(process.env.PAYMENT_POLL_INTERVAL_MS || 8000);
@@ -721,4 +730,16 @@ app.post('/api/gopay/logout', requireUser, async (req, res) => {
 app.get('/api/activity', requireUser, async (req, res) => { const [rows] = await pool.execute('SELECT action, metadata, created_at FROM activity_logs WHERE user_id=? ORDER BY id DESC LIMIT 50', [req.user.id]); res.json({ success: true, items: rows }); });
 
 app.use((error, _req, res, _next) => { console.error('unhandled:', error); fail(res, 500, 'Terjadi kesalahan internal'); });
-app.listen(port, () => console.log(`Platform API listening on ${port}`));
+
+async function startServer() {
+  try {
+    await applyMigrations(pool);
+    console.log('Database tables & columns verified/migrated successfully');
+  } catch (err) {
+    console.error('Failed to run initial database migration:', err.message);
+  }
+
+  app.listen(port, () => console.log(`Platform API listening on ${port}`));
+}
+
+startServer();
