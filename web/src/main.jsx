@@ -1308,7 +1308,7 @@ function ApiKeyPage() {
               <Webhook size={18} />
             </div>
 
-            <p className="gpy-meta-text" style={{ margin: '4px 0 16px', lineHeight: 1.6 }}>
+            <p className="gpy-desc">
               Kirim notifikasi HTTP POST otomatis ke server kamu seketika saat pembayaran lunas (<code>PAID</code>).
             </p>
 
