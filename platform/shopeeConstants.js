@@ -27,6 +27,7 @@ module.exports = {
   EPPartnerLoginAuth: '/login/auth',
   EPStores: '/merchant/v1/partner-web/get-store-list',
   EPTransactions: '/merchant/v1/partner-web/get-transaction-list',
+  EPTransactionDetail: '/merchant/v1/partner-web/get-transaction-detail',
 
   // Operation & Config
   OTPOperation: 50001,

@@ -23,6 +23,7 @@ const {
   EPPartnerLoginAuth,
   EPStores,
   EPTransactions,
+  EPTransactionDetail,
   DefaultLanguage,
   DefaultTimezone,
   BusinessClientID,
@@ -750,9 +751,11 @@ async function listShopeeTransactions(session, options = {}) {
         orderId: String(raw.orderId || raw.referenceId || txId),
         amount,
         paymentType: 'QRIS',
-        issuer: 'SHOPEEPAY',
+        issuer: String(raw.issuer || '').trim() || 'SHOPEEPAY',
         status: Number(raw.status || 0) === 3 ? 'SETTLEMENT' : 'PENDING',
-        transactionTime: new Date(createTime * 1000).toISOString()
+        transactionTime: new Date(createTime * 1000).toISOString(),
+        service: Number(raw.service || 1),
+        transactionType: Number(raw.transactionType || 1)
       });
     }
   } catch (err) {
@@ -767,11 +770,51 @@ async function listShopeeTransactions(session, options = {}) {
   return { transactions, session: activeSession };
 }
 
+/**
+ * Fetch single transaction detail to retrieve QRIS issuer (e.g. "Bank Jago", "GoPay", "ShopeePay")
+ */
+async function getShopeeTransactionDetail(session, { orderSn, transactionType = 1, service = 1 }) {
+  if (!orderSn) return null;
+  const jar = new ShopeeCookieJar(session.cookies);
+  const client = new ShopeeHttpClient(jar);
+
+  let currentToken = session.token;
+  if (!currentToken) {
+    const jwtCookie = jar.get(LiveTokenCookie, PartnerBaseURL);
+    if (jwtCookie) {
+      const payload = decodeJwtPayload(jwtCookie);
+      currentToken = payload?.token || '';
+    }
+  }
+
+  const resp = await client.request(`${PayBaseURL}${EPTransactionDetail}`, {
+    method: 'POST',
+    headers: paymentHeaders(),
+    data: {
+      data: {
+        metadata: {
+          token: currentToken,
+          language: DefaultLanguage,
+          timezone: DefaultTimezone
+        },
+        order_sn: String(orderSn),
+        transaction_type: Number(transactionType || 1),
+        service: Number(service || 1)
+      }
+    }
+  });
+
+  const resData = resp.data || {};
+  if (resData.code !== 0) return null;
+  return resData.data || null;
+}
+
 module.exports = {
   requestShopeeOtp,
   verifyShopeeOtp,
   completeShopeeLogin,
   listShopeeStores,
   refreshShopeeSession,
-  listShopeeTransactions
+  listShopeeTransactions,
+  getShopeeTransactionDetail
 };
