@@ -148,10 +148,13 @@ class ShopeeHttpClient {
     const method = options.method || 'GET';
     const reqHeaders = { ...options.headers };
 
-    // Inject cookie if present
-    const cookieHeader = this.jar.getCookieString(url);
-    if (cookieHeader) {
-      reqHeaders['Cookie'] = cookieHeader;
+    // Inject cookie if present (EXCEPT for api.partner.shopee.co.id which authenticates by header only)
+    const parsedUrl = new URL(url);
+    if (parsedUrl.hostname !== 'api.partner.shopee.co.id') {
+      const cookieHeader = this.jar.getCookieString(url);
+      if (cookieHeader) {
+        reqHeaders['Cookie'] = cookieHeader;
+      }
     }
 
     let data = options.data;
@@ -168,7 +171,7 @@ class ShopeeHttpClient {
       data,
       params: options.params,
       maxRedirects: 0,
-      validateStatus: status => status >= 200 && status < 400,
+      validateStatus: () => true,
       timeout: options.timeout || 20000
     });
 
@@ -184,7 +187,13 @@ class ShopeeHttpClient {
     let currentUrl = url;
     let hops = 0;
     while (hops < 10) {
-      const resp = await this.request(currentUrl, { method: 'GET', headers });
+      const resp = await this.request(currentUrl, {
+        method: 'GET',
+        headers: {
+          ...BrowserHeaders,
+          ...headers
+        }
+      });
       if (resp.status >= 300 && resp.status < 400 && resp.headers.location) {
         currentUrl = new URL(resp.headers.location, currentUrl).toString();
         hops++;
@@ -425,7 +434,8 @@ async function verifyShopeeOtp(challenge, otpCode) {
   accountLoginUrl.searchParams.set('spc_clientid', spcClientId);
   accountLoginUrl.searchParams.set('state', partnerState());
   accountLoginUrl.searchParams.set('toc_nonce', tocNonce);
-  await client.followGet(accountLoginUrl.toString());
+  const redirectResp = await client.followGet(accountLoginUrl.toString());
+  console.log('[shopee-verify] account login followGet status:', redirectResp.status, 'cookies count:', jar.cookies.length);
 
   // 4. Detect merchants
   const detectResp = await client.request(`${PartnerAPIBaseURL}${EPMerchantDetect}`, {
@@ -434,7 +444,10 @@ async function verifyShopeeOtp(challenge, otpCode) {
     data: {}
   });
 
+  console.log('[shopee-verify] detectResp status:', detectResp.status, 'code:', detectResp.data?.code, 'data:', JSON.stringify(detectResp.data));
+
   if (detectResp.data?.code !== 0) {
+    console.error('[shopee-verify] detectResp error payload:', JSON.stringify(detectResp.data), 'status:', detectResp.status);
     throw new Error(detectResp.data?.message || `Gagal mendeteksi merchant Shopee (${detectResp.data?.code})`);
   }
 
