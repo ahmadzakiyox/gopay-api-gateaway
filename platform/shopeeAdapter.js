@@ -230,7 +230,7 @@ async function acquireDeviceFingerprint(httpClient, deviceReport = DeviceRiskBlo
 /**
  * Step 1: Request OTP from Shopee
  */
-async function requestShopeeOtp(phoneNumber, password = '') {
+async function requestShopeeOtp(phoneNumber, password = '', opts = {}) {
   const phone = parseIndonesianPhone(phoneNumber);
   const client = new ShopeeHttpClient();
 
@@ -305,7 +305,15 @@ async function requestShopeeOtp(phoneNumber, password = '') {
     throw new Error(settingsResp.data?.msg || `Gagal mengambil pengaturan OTP Shopee (${settingsResp.data?.error})`);
   }
 
-  const defaultChannel = settingsResp.data?.data?.default_channel || 3;
+  const rawChannels = settingsResp.data?.data?.available_channel_list || [];
+  const availableChannels = Array.isArray(rawChannels) ? rawChannels.map(Number) : [];
+  let channel = opts.channel || 0;
+  if (!channel) {
+    channel = Number(settingsResp.data?.data?.default_channel || 3);
+  }
+  if (availableChannels.length > 0 && !availableChannels.includes(channel)) {
+    throw new Error(`Channel OTP ${channel === 3 ? 'WhatsApp' : 'SMS'} tidak tersedia untuk akun ini. Channel tersedia: ${availableChannels.map(c => c === 3 ? 'WhatsApp' : c === 1 ? 'SMS' : c).join(', ')}`);
+  }
 
   // 7. Send OTP
   const sendResp = await client.request(`${AccountBaseURL}${EPSendOtp}`, {
@@ -317,7 +325,7 @@ async function requestShopeeOtp(phoneNumber, password = '') {
       security_device_fingerprint: fingerprint,
       support_session: false,
       supported_channels: [1, 2, 3, 5, 4],
-      channel: defaultChannel,
+      channel,
       captcha_signature: ''
     }
   });
@@ -328,7 +336,8 @@ async function requestShopeeOtp(phoneNumber, password = '') {
   return {
     version: 1,
     phoneNumber: phone,
-    channel: defaultChannel,
+    channel,
+    availableChannels,
     deviceFingerprint: fingerprint,
     hasPassword,
     cookies: client.jar.snapshot(),

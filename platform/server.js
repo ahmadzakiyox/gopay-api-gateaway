@@ -818,8 +818,7 @@ app.post('/api/shopee/connect/start', requireUser, async (req, res) => {
     pendingShopeeChallenges.set(req.user.id, {
       phoneNumber: parsed.data.phoneNumber,
       password: parsed.data.password,
-      challenge: result.challenge,
-      client: result.client,
+      challenge: result,
       channel: result.channel,
       expiresAt: Date.now() + 10 * 60 * 1000
     });
@@ -832,8 +831,7 @@ app.post('/api/shopee/connect/start', requireUser, async (req, res) => {
       success: true,
       status: 'otp_pending',
       channel: result.channel,
-      channels: result.channels,
-      operation: result.operation
+      availableChannels: result.availableChannels || []
     });
   } catch (error) {
     console.error('shopee otp start error:', error.message);
@@ -852,15 +850,19 @@ app.post('/api/shopee/connect/verify', requireUser, async (req, res) => {
   }
 
   try {
-    const verifyResult = await verifyShopeeOtp(pending.client, pending.challenge, parsed.data.otp);
-    // Complete login to get merchants & stores
-    const loginResult = await completeShopeeLogin(pending.client, verifyResult.verification);
+    const verifyResult = await verifyShopeeOtp(pending.challenge, parsed.data.otp);
+    // Find merchant from detected list
+    const merchant = verifyResult.merchants?.[0];
+    if (!merchant) {
+      throw new Error('Tidak ada merchant yang ditemukan pada akun Shopee ini');
+    }
+    const loginResult = await completeShopeeLogin(verifyResult, merchant.id);
     pendingShopeeChallenges.delete(req.user.id);
 
     if (loginResult.stores && loginResult.stores.length > 1) {
       // Store pending selection in memory
       pendingShopeeVerifications.set(req.user.id, {
-        client: loginResult.client,
+        verification: verifyResult,
         stores: loginResult.stores,
         merchantId: loginResult.merchantId,
         merchantName: loginResult.merchantName,
@@ -877,15 +879,15 @@ app.post('/api/shopee/connect/verify', requireUser, async (req, res) => {
     }
 
     // Single store auto-selected
-    const session = loginResult.client.exportSession();
+    const session = loginResult.session;
     await pool.execute(
       "UPDATE shopee_accounts SET phone_number=?, merchant_id=?, merchant_name=?, store_id=?, store_name=?, encrypted_session=?, status='connected', last_error=NULL WHERE user_id=?",
       [
         pending.phoneNumber,
         loginResult.merchantId,
         loginResult.merchantName,
-        loginResult.selectedStore?.storeId || '',
-        loginResult.selectedStore?.storeName || '',
+        loginResult.selectedStore?.id || '',
+        loginResult.selectedStore?.name || '',
         encrypt(JSON.stringify(session)),
         req.user.id
       ]
@@ -896,8 +898,8 @@ app.post('/api/shopee/connect/verify', requireUser, async (req, res) => {
       status: 'connected',
       merchantId: loginResult.merchantId,
       merchantName: loginResult.merchantName,
-      storeId: loginResult.selectedStore?.storeId,
-      storeName: loginResult.selectedStore?.storeName,
+      storeId: loginResult.selectedStore?.id,
+      storeName: loginResult.selectedStore?.name,
       phoneNumber: pending.phoneNumber
     });
   } catch (error) {
@@ -918,9 +920,9 @@ app.post('/api/shopee/connect/select-store', requireUser, async (req, res) => {
   }
 
   try {
-    await pending.client.selectStore(pending.merchantId, parsed.data.storeId);
-    const selectedStore = pending.stores.find((s) => String(s.storeId) === String(parsed.data.storeId)) || { storeId: parsed.data.storeId, storeName: '' };
-    const session = pending.client.exportSession();
+    const loginResult = await completeShopeeLogin(pending.verification, pending.merchantId, parsed.data.storeId);
+    const selectedStore = loginResult.selectedStore || { id: parsed.data.storeId, name: '' };
+    const session = loginResult.session;
     pendingShopeeVerifications.delete(req.user.id);
 
     await pool.execute(
@@ -929,20 +931,20 @@ app.post('/api/shopee/connect/select-store', requireUser, async (req, res) => {
         pending.phoneNumber,
         pending.merchantId,
         pending.merchantName,
-        selectedStore.storeId,
-        selectedStore.storeName,
+        selectedStore.id,
+        selectedStore.name,
         encrypt(JSON.stringify(session)),
         req.user.id
       ]
     );
-    await audit(req.user.id, 'shopee_connected', { merchantId: pending.merchantId, storeId: selectedStore.storeId });
+    await audit(req.user.id, 'shopee_connected', { merchantId: pending.merchantId, storeId: selectedStore.id });
     return res.json({
       success: true,
       status: 'connected',
       merchantId: pending.merchantId,
       merchantName: pending.merchantName,
-      storeId: selectedStore.storeId,
-      storeName: selectedStore.storeName,
+      storeId: selectedStore.id,
+      storeName: selectedStore.name,
       phoneNumber: pending.phoneNumber
     });
   } catch (error) {

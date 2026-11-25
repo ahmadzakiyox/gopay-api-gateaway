@@ -244,7 +244,7 @@ function MerchantConnection() {
   const [shopeePassword, setShopeePassword] = useState('');
   const [shopeeOtp, setShopeeOtp] = useState('');
   const [shopeeOtpSent, setShopeeOtpSent] = useState(false);
-  const [shopeeChannel, setShopeeChannel] = useState(3);
+  const [shopeeChannel, setShopeeChannel] = useState(1);
   const [shopeeNeedStoreSelection, setShopeeNeedStoreSelection] = useState(false);
   const [shopeeStores, setShopeeStores] = useState([]);
   const [shopeeLogoutModalOpen, setShopeeLogoutModalOpen] = useState(false);
@@ -692,10 +692,10 @@ function MerchantConnection() {
                     <input className="gpy-input" id="shopee-password" type="password" value={shopeePassword} onChange={(e) => setShopeePassword(e.target.value)} placeholder="Password akun Shopee" />
                     <div style={{ marginTop: '10px', display: 'flex', gap: '16px', fontSize: '13px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                        <input type="radio" name="channel" value={3} checked={shopeeChannel === 3} onChange={() => setShopeeChannel(3)} /> WhatsApp
+                        <input type="radio" name="channel" value={1} checked={shopeeChannel === 1} onChange={() => setShopeeChannel(1)} /> SMS
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                        <input type="radio" name="channel" value={1} checked={shopeeChannel === 1} onChange={() => setShopeeChannel(1)} /> SMS
+                        <input type="radio" name="channel" value={3} checked={shopeeChannel === 3} onChange={() => setShopeeChannel(3)} /> WhatsApp
                       </label>
                     </div>
                     <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !shopeePhone.trim() || !shopeePassword.trim()} style={{ marginTop: '14px' }}>
