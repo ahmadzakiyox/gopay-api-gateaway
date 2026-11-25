@@ -8,7 +8,7 @@ export default function PrivacyPage({ user, onLogout }) {
       activeTab="privacy"
       title="Kebijakan Privasi"
       tagline="Komitmen kami dalam mengamankan data akun, privasi pengguna, dan hak pengelolaan data Anda."
-      date="Terakhir diperbarui: 24 November 2026"
+      date="Terakhir diperbarui: 26 November 2026"
       user={user}
       onLogout={onLogout}
     >
@@ -23,7 +23,8 @@ export default function PrivacyPage({ user, onLogout }) {
       <ul>
         <li><strong>Data Profil Telegram:</strong> Telegram ID, username, nama profil, dan foto profil yang diteruskan oleh sistem Telegram OAuth resmi.</li>
         <li><strong>Data Akun GoPay Merchant:</strong> Nomor telepon gerai, Merchant ID, nama outlet, dan nama pemilik gerai yang tercatat di GoBiz.</li>
-        <li><strong>Token Sesi GoBiz:</strong> Access token dan refresh token yang diperoleh setelah verifikasi OTP, yang digunakan untuk mengecek mutasi transaksi QRIS gerai Anda secara berkala.</li>
+        <li><strong>Data Akun ShopeePay Merchant:</strong> Nomor telepon, Merchant ID, Store ID, dan nama toko yang tercatat di Shopee Partner.</li>
+        <li><strong>Token Sesi Merchant:</strong> Access token, refresh token GoBiz, serta token dan cookie sesi Shopee Partner yang diperoleh setelah verifikasi OTP, yang digunakan untuk mengecek mutasi transaksi QRIS gerai Anda secara berkala.</li>
         <li><strong>Konfigurasi QRIS:</strong> Payload string QRIS statis outlet resmi Anda untuk membuat QRIS dinamis.</li>
         <li><strong>Log & Riwayat Transaksi:</strong> Order ID, nominal transaksi, penanda unik (surcharge), status pembayaran, dan waktu transaksi.</li>
       </ul>
@@ -33,7 +34,7 @@ export default function PrivacyPage({ user, onLogout }) {
         Kami hanya menggunakan data yang dikumpulkan untuk tujuan-tujuan berikut:
       </p>
       <ul>
-        <li>Melakukan verifikasi dan pencocokan mutasi QRIS GoPay Merchant secara otomatis;</li>
+        <li>Melakukan verifikasi dan pencocokan mutasi QRIS GoPay Merchant maupun ShopeePay Merchant secara otomatis;</li>
         <li>Menyediakan statistik dan grafik analitik pada dashboard pengguna;</li>
         <li>Menyediakan layanan notifikasi status transaksi via REST API;</li>
         <li>Memastikan keamanan sistem dan mencegah akses tidak sah.</li>
@@ -47,9 +48,9 @@ export default function PrivacyPage({ user, onLogout }) {
         Keamanan data Anda adalah prioritas utama Kami:
       </p>
       <ul>
-        <li>Seluruh token sesi GoBiz (access token dan refresh token) disimpan dalam database menggunakan <strong>enkripsi simetris standar industri AES-256-GCM</strong>. Token sesi tidak pernah disimpan dalam format teks polos (plaintext).</li>
+        <li>Seluruh token sesi GoBiz dan Shopee Partner disimpan dalam database menggunakan <strong>enkripsi simetris standar industri AES-256-GCM</strong>. Token sesi tidak pernah disimpan dalam format teks polos (plaintext).</li>
         <li>API Key yang dibuat hanya disimpan dalam bentuk <strong>kriptografi hash satu arah (SHA-256)</strong> di server kami, sehingga tidak dapat didekripsi kembali oleh pihak manapun.</li>
-        <li>Kami tidak pernah meminta, mengakses, atau menyimpan PIN transaksi GoPay Anda.</li>
+        <li>Kami tidak pernah meminta, mengakses, atau menyimpan PIN transaksi GoPay maupun PIN ShopeePay Anda.</li>
         <li>Seluruh komunikasi data antara peramban (browser) dan server Kami dilindungi oleh protokol HTTPS dengan enkripsi TLS/SSL modern.</li>
       </ul>
 
@@ -58,13 +59,13 @@ export default function PrivacyPage({ user, onLogout }) {
         Pengguna memiliki kendali penuh atas data mereka di AlternatePay:
       </p>
       <ul>
-        <li>Melalui tombol <strong>Logout GoPay</strong> di menu GoPay Management, Anda dapat kapan saja memutuskan koneksi GoPay. Tindakan ini seketika menghapus token sesi GoBiz, access token, refresh token, dan konfigurasi QRIS statis Anda dari basis data kami secara permanen.</li>
+        <li>Melalui tombol <strong>Logout GoPay</strong> atau <strong>Logout ShopeePay</strong> di menu Koneksi Merchant, Anda dapat kapan saja memutuskan koneksi merchant Anda. Tindakan ini seketika menghapus token sesi, kredensial akses, dan konfigurasi QRIS statis terkait dari basis data kami secara permanen.</li>
         <li>Anda juga dapat melakukan logout dari sesi akun Telegram Anda kapan saja melalui tombol Logout pada menu navigasi.</li>
       </ul>
 
       <h2>5. LAYANAN PIHAK KETIGA</h2>
       <p>
-        AlternatePay berinteraksi dengan layanan pihak ketiga seperti Telegram dan sistem GoBiz/GoPay. Setiap pihak ketiga memiliki kebijakan privasi dan ketentuan tersendiri, dan AlternatePay tidak memiliki kendali atau tanggung jawab atas kebijakan pihak ketiga tersebut.
+        AlternatePay berinteraksi dengan layanan pihak ketiga seperti Telegram, sistem GoBiz/GoPay, serta sistem Shopee Partner/ShopeePay. Setiap pihak ketiga memiliki kebijakan privasi dan ketentuan tersendiri, dan AlternatePay tidak memiliki kendali atau tanggung jawab atas kebijakan pihak ketiga tersebut.
       </p>
 
       <div className="legal-footer">

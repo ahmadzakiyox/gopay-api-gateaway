@@ -13,7 +13,7 @@ export function LegalDisclaimerBanner() {
         <span>PEMBERITAHUAN PENTING & DISCLAIMER RESMI</span>
       </div>
       <p className="legal-disclaimer-body">
-        <strong>AlternatePay adalah perangkat lunak dan layanan independen (unofficial). AlternatePay TIDAK berafiliasi, didukung, disponsori, atau bermitra secara resmi dalam bentuk apapun dengan PT GoTo Gojek Tokopedia Tbk, GoPay, GoBiz, maupun entitas grup GoTo lainnya.</strong> Seluruh nama merek dagang, logo, dan produk GoPay / GoBiz adalah hak milik sah dari masing-masing pemilik hak cipta. Layanan ini semata-mata bertindak sebagai alat otomasi pencatatan data mandiri. <strong>Segala penggunaan layanan, risiko pemblokiran akun pihak ketiga, kendala teknis, serta risiko finansial ditanggung sepenuhnya oleh pengguna (at your own risk).</strong>
+        <strong>AlternatePay adalah perangkat lunak dan layanan independen (unofficial). AlternatePay TIDAK berafiliasi, didukung, disponsori, atau bermitra secara resmi dalam bentuk apapun dengan PT GoTo Gojek Tokopedia Tbk, GoPay, GoBiz, PT Airpay International Indonesia, ShopeePay, Shopee Partner, maupun entitas grup terkait lainnya.</strong> Seluruh nama merek dagang, logo, dan produk GoPay / GoBiz maupun ShopeePay / Shopee Partner adalah hak milik sah dari masing-masing pemilik hak cipta. Layanan ini semata-mata bertindak sebagai alat otomasi pencatatan data mandiri. <strong>Segala penggunaan layanan, risiko pemblokiran akun pihak ketiga, kendala teknis, serta risiko finansial ditanggung sepenuhnya oleh pengguna (at your own risk).</strong>
       </p>
     </div>
   );

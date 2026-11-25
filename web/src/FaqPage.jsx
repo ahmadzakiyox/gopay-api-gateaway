@@ -35,25 +35,25 @@ export default function FaqPage({ user, onLogout }) {
 
         <FaqItem question="Apa itu AlternatePay?">
           <p>
-            AlternatePay adalah perangkat lunak jembatan otomasi (bridge automation) mandiri yang membantu pengembang web dan pemilik usaha menghubungkan akun GoPay Merchant (GoBiz) ke aplikasi web atau sistem kasir Anda melalui REST API tanpa perlu birokrasi pendaftaran payment gateway konvensional.
+            AlternatePay adalah perangkat lunak jembatan otomasi (bridge automation) mandiri yang membantu pengembang web dan pemilik usaha menghubungkan akun GoPay Merchant (GoBiz) dan ShopeePay Merchant (Shopee Partner) ke aplikasi web atau sistem kasir Anda melalui REST API tanpa perlu birokrasi pendaftaran payment gateway konvensional.
           </p>
         </FaqItem>
 
-        <FaqItem question="Apakah AlternatePay berafiliasi dengan GoPay atau PT GoTo Gojek Tokopedia Tbk?">
+        <FaqItem question="Apakah AlternatePay berafiliasi dengan GoPay, ShopeePay, atau penyedia resmi lainnya?">
           <p>
-            <strong>Tidak.</strong> AlternatePay adalah proyek perangkat lunak independen (unofficial) dan TIDAK berafiliasi, didukung, disertifikasi, atau bermitra resmi dalam bentuk apapun dengan PT GoTo Gojek Tokopedia Tbk, GoPay, maupun GoBiz. Seluruh risiko operasional ditanggung sepenuhnya oleh pengguna.
+            <strong>Tidak.</strong> AlternatePay adalah proyek perangkat lunak independen (unofficial) dan TIDAK berafiliasi, didukung, disertifikasi, atau bermitra resmi dalam bentuk apapun dengan PT GoTo Gojek Tokopedia Tbk, GoPay, GoBiz, PT Airpay International Indonesia, ShopeePay, maupun Shopee Partner. Seluruh risiko operasional ditanggung sepenuhnya oleh pengguna.
           </p>
         </FaqItem>
 
         <FaqItem question="Apakah AlternatePay memotong biaya per transaksi?">
           <p>
-            Tidak ada potongan biaya transaksi dari AlternatePay. Saldo pembayaran dari pelanggan Anda 100% masuk langsung ke saldo akun GoPay Merchant Anda di aplikasi GoBiz.
+            Tidak ada potongan biaya transaksi dari AlternatePay. Saldo pembayaran dari pelanggan Anda 100% masuk langsung ke saldo akun GoPay Merchant (GoBiz) atau ShopeePay Merchant (Shopee Partner) milik Anda sesuai provider yang sedang aktif.
           </p>
         </FaqItem>
 
         <FaqItem question="Di mana dana transaksi pembeli disimpan?">
           <p>
-            AlternatePay <strong>bukan lembaga keuangan dan bukan tempat penampungan dana</strong>. Seluruh dana yang dibayarkan oleh pembeli langsung masuk seketika ke rekening saldo GoBiz milik Anda sendiri, sebagaimana transaksi QRIS toko biasa.
+            AlternatePay <strong>bukan lembaga keuangan dan bukan tempat penampungan dana</strong>. Seluruh dana yang dibayarkan oleh pembeli langsung masuk seketika ke rekening saldo GoBiz atau Shopee Partner milik Anda sendiri, sebagaimana transaksi QRIS toko biasa.
           </p>
         </FaqItem>
       </div>
@@ -63,7 +63,7 @@ export default function FaqPage({ user, onLogout }) {
 
         <FaqItem question="Bagaimana sistem mengetahui bahwa pembeli sudah membayar?">
           <p>
-            Sistem mengonversi QRIS statis outlet Anda menjadi QRIS dinamis bernominal dengan menambahkan kode penanda unik (surcharge acak Rp 1 – Rp 99) per pengguna. Saat pelanggan membayar dengan nominal persis tersebut, sistem polling AlternatePay mendeteksi mutasi transaksi yang masuk di sistem GoBiz dan otomatis mengubah status pembayaran menjadi <strong>SUKSES</strong> (paid).
+            Sistem mengonversi QRIS statis outlet Anda menjadi QRIS dinamis bernominal dengan menambahkan kode penanda unik (surcharge acak Rp 1 – Rp 99) per pengguna. Saat pelanggan membayar dengan nominal persis tersebut, sistem polling AlternatePay mendeteksi mutasi transaksi yang masuk di sistem GoBiz atau Shopee Partner dan otomatis mengubah status pembayaran menjadi <strong>SUKSES</strong> (paid).
           </p>
         </FaqItem>
 
@@ -89,24 +89,24 @@ export default function FaqPage({ user, onLogout }) {
       <div className="faq-category">
         <h2 className="faq-category-title">Keamanan & Privasi</h2>
 
-        <FaqItem question="Apakah data sesi dan token GoPay saya aman?">
+        <FaqItem question="Apakah data sesi dan token merchant saya aman?">
           <p>
-            Sangat aman. Token sesi (access token dan refresh token) disimpan dalam database menggunakan <strong>enkripsi simetris standar industri AES-256-GCM</strong>. Data sesi tidak pernah disimpan dalam bentuk teks biasa (plaintext).
+            Sangat aman. Token sesi (access token, refresh token GoBiz, maupun cookie/token sesi Shopee Partner) disimpan dalam database menggunakan <strong>enkripsi simetris standar industri AES-256-GCM</strong>. Data sesi tidak pernah disimpan dalam bentuk teks biasa (plaintext).
           </p>
           <p>
             Selain itu, API Key Anda disimpan menggunakan hashing satu arah (SHA-256) sehingga tidak dapat dibaca kembali oleh siapapun.
           </p>
         </FaqItem>
 
-        <FaqItem question="Apakah AlternatePay meminta PIN GoPay saya?">
+        <FaqItem question="Apakah AlternatePay meminta PIN transaksi GoPay atau ShopeePay saya?">
           <p>
-            <strong>Tidak pernah.</strong> Kami tidak pernah meminta, mengakses, atau menyimpan PIN transaksi GoPay Anda. Proses penghubungan akun GoPay Merchant murni menggunakan kode OTP resmi yang dikirimkan oleh GoBiz.
+            <strong>Tidak pernah.</strong> Kami tidak pernah meminta, mengakses, atau menyimpan PIN transaksi GoPay maupun PIN ShopeePay Anda. Proses penghubungan akun murni menggunakan mekanisme autentikasi resmi (OTP GoBiz untuk GoPay, serta verifikasi login & OTP Shopee Partner untuk ShopeePay).
           </p>
         </FaqItem>
 
-        <FaqItem question="Bagaimana cara memutuskan akun GoPay dari sistem?">
+        <FaqItem question="Bagaimana cara memutuskan akun GoPay atau ShopeePay dari sistem?">
           <p>
-            Anda dapat membuka menu <strong>GoPay Management</strong> lalu mengklik tombol merah <strong>Logout GoPay</strong>. Setelah dikonfirmasi, seluruh access token, refresh token, data outlet, dan string QRIS statis Anda akan dihapus permanen dari basis data kami seketika itu juga.
+            Anda dapat membuka menu <strong>Koneksi Merchant</strong>, pilih tab <strong>GoPay</strong> atau <strong>ShopeePay</strong>, lalu klik tombol merah <strong>Logout GoPay</strong> atau <strong>Logout ShopeePay</strong>. Setelah dikonfirmasi, seluruh token sesi, data outlet, dan string QRIS statis provider terkait akan dihapus permanen dari basis data kami seketika itu juga.
           </p>
         </FaqItem>
       </div>

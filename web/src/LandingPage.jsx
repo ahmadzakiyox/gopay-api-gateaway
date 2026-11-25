@@ -72,7 +72,7 @@ export function LandingPage({ onLogin, loading, error }) {
                   </span>
                 </span>
               </div>
-              Langsung ke Rekening GoPay Kamu
+              Langsung ke Rekening GoPay &amp; ShopeePay Kamu
             </h1>
 
             <p className="hero-subtitle" data-reveal>
@@ -185,7 +185,7 @@ export function LandingPage({ onLogin, loading, error }) {
                 </div>
                 <h3 className="pillar-title">Settlement Real-Time</h3>
                 <p className="pillar-desc">
-                  Sistem mengecek mutasi GoPay Merchant tiap beberapa detik tanpa jeda manual saat ada transaksi berlangsung.
+                  Sistem mengecek mutasi GoPay Merchant &amp; ShopeePay Merchant tiap beberapa detik tanpa jeda manual saat ada transaksi berlangsung.
                 </p>
               </div>
 
@@ -195,7 +195,7 @@ export function LandingPage({ onLogin, loading, error }) {
                 </div>
                 <h3 className="pillar-title">Keamanan Sandi Tingkat Tinggi</h3>
                 <p className="pillar-desc">
-                  Sesi GoPay dan kunci API disimpan dengan enkripsi AES-256-GCM. Dilengkapi proteksi SSRF dan tanda tangan HMAC.
+                  Sesi merchant dan kunci API disimpan dengan enkripsi AES-256-GCM. Dilengkapi proteksi SSRF dan tanda tangan HMAC.
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ export function LandingPage({ onLogin, loading, error }) {
                   <span className="card-pill pill-green">MUTASI & QRIS</span>
                   <h3 className="feature-title">QRIS Dinamis Otomatis</h3>
                   <p className="feature-desc">
-                    Unggah QRIS statis GoPay milikmu sekali, dan sistem otomatis menghasilkan string QRIS dinamis siap scan sesuai nominal tagihan.
+                    Unggah QRIS statis GoPay atau ShopeePay milikmu sekali, dan sistem otomatis menghasilkan string QRIS dinamis siap scan sesuai nominal tagihan.
                   </p>
                 </div>
                 <div className="feature-card-footer">
@@ -301,9 +301,9 @@ export function LandingPage({ onLogin, loading, error }) {
             <div className="steps-grid">
               <div className="step-card" data-reveal>
                 <div className="step-number">01</div>
-                <h4 className="step-title">Hubungkan GoPay Merchant</h4>
+                <h4 className="step-title">Hubungkan Merchant QRIS</h4>
                 <p className="step-desc">
-                  Masuk dengan Telegram dan hubungkan akun GoPay Merchant kamu menggunakan nomor telepon dan OTP resmi.
+                  Masuk dengan Telegram dan hubungkan akun GoPay Merchant atau ShopeePay Merchant kamu menggunakan nomor telepon dan OTP resmi.
                 </p>
               </div>
 

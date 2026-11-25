@@ -7,7 +7,7 @@ export default function TermsPage({ user, onLogout }) {
       activeTab="terms"
       title="Syarat dan Ketentuan"
       tagline="Ketentuan penggunaan layanan, hak & kewajiban pengguna, serta klausul pelepasan tanggung jawab."
-      date="Terakhir diperbarui: 24 November 2026"
+      date="Terakhir diperbarui: 26 November 2026"
       user={user}
       onLogout={onLogout}
     >
@@ -21,7 +21,7 @@ export default function TermsPage({ user, onLogout }) {
 
       <h2>2. PENAFIAN AFILIASI & STATUS UNOFFICIAL</h2>
       <p>
-        <strong>AlternatePay adalah proyek independen dan TIDAK berafiliasi, didukung, disponsori, atau bermitra secara resmi dengan PT GoTo Gojek Tokopedia Tbk, GoPay, GoBiz, maupun entitas grup GoTo lainnya.</strong>
+        <strong>AlternatePay adalah proyek independen dan TIDAK berafiliasi, didukung, disponsori, atau bermitra secara resmi dengan PT GoTo Gojek Tokopedia Tbk, GoPay, GoBiz, PT Airpay International Indonesia, ShopeePay, Shopee Partner, maupun entitas grup terkait lainnya.</strong>
       </p>
       <p>
         Layanan ini disediakan semata-mata sebagai utilitas otomasi teknis jembatan (bridge) untuk membantu pemilik usaha memonitor mutasi transaksi QRIS mereka sendiri melalui REST API. AlternatePay bukan perbankan, bukan lembaga keuangan, dan bukan Penyelenggara Jasa Pembayaran (PJP) berlisensi Bank Indonesia.
@@ -35,10 +35,10 @@ export default function TermsPage({ user, onLogout }) {
         <p><strong>RISIKO DITANGGUNG PENGGUNA SEPENUHNYA (AT YOUR OWN RISK):</strong></p>
         <ul>
           <li>
-            Pengguna menyadari sepenuhnya bahwa integrasi otomasi terhadap sistem atau API pihak ketiga (GoBiz / GoPay) dapat bertentangan dengan Ketentuan Layanan pihak GoBiz dan berpotensi menimbulkan tindakan administratif dari pihak GoBiz, termasuk namun tidak terbatas pada penangguhan, pembatasan fitur, atau penutupan permanen akun merchant Anda.
+            Pengguna menyadari sepenuhnya bahwa integrasi otomasi terhadap sistem atau API pihak ketiga (GoBiz / GoPay maupun Shopee Partner / ShopeePay) dapat bertentangan dengan Ketentuan Layanan penyedia terkait dan berpotensi menimbulkan tindakan administratif dari pihak tersebut, termasuk namun tidak terbatas pada penangguhan, pembatasan fitur, atau penutupan permanen akun merchant Anda.
           </li>
           <li>
-            AlternatePay, pengembang, pengelola, maupun kontributornya <strong>TIDAK BERTANGGUNG JAWAB</strong> atas segala bentuk kerugian finansial, hilangnya potensi pendapatan, pembekuan dana di GoBiz, sanksi akun, maupun kerugian langsung atau tidak langsung lainnya yang timbul akibat penggunaan Layanan ini.
+            AlternatePay, pengembang, pengelola, maupun kontributornya <strong>TIDAK BERTANGGUNG JAWAB</strong> atas segala bentuk kerugian finansial, hilangnya potensi pendapatan, pembekuan dana di GoBiz maupun Shopee Partner, sanksi akun, maupun kerugian langsung atau tidak langsung lainnya yang timbul akibat penggunaan Layanan ini.
           </li>
         </ul>
       </div>
@@ -46,14 +46,14 @@ export default function TermsPage({ user, onLogout }) {
       <h2>4. KETENTUAN PENGGUNAAN LAYANAN</h2>
       <p>Pengguna diwajibkan untuk mematuhi ketentuan operasional berikut:</p>
       <ul>
-        <li><strong>Kepemilikan Sah:</strong> Anda hanya diperbolehkan menghubungkan akun GoPay Merchant dan string QRIS yang secara sah merupakan hak milik usaha Anda sendiri.</li>
+        <li><strong>Kepemilikan Sah:</strong> Anda hanya diperbolehkan menghubungkan akun GoPay Merchant, akun ShopeePay Merchant (Shopee Partner), serta string QRIS yang secara sah merupakan hak milik usaha Anda sendiri.</li>
         <li><strong>Aktivitas Terlarang:</strong> Dilarang keras menggunakan AlternatePay untuk memproses transaksi yang berkaitan dengan judi online (perjudian), penipuan (scam / fraud), pencucian uang, pendanaan terorisme, perdagangan narkotika, pornografi, penjualan barang selundupan atau barang curian, maupun aktivitas lain yang melanggar hukum di wilayah hukum Negara Kesatuan Republik Indonesia.</li>
         <li><strong>Keamanan Kredensial:</strong> Anda bertanggung jawab penuh untuk menjaga kerahasiaan API Key Anda dan tidak membagikannya kepada pihak yang tidak berhak.</li>
       </ul>
 
       <h2>5. PERUBAHAN DAN PENGHENTIAN LAYANAN</h2>
       <p>
-        Pengembang berhak untuk sewaktu-waktu mengubah, menangguhkan, atau menghentikan sebagian maupun seluruh fitur Layanan AlternatePay tanpa pemberitahuan sebelumnya, terutama apabila terjadi perubahan sistem, kebijakan, atau penutupan akses dari sistem upstream GoBiz/GoPay, ataupun alasan pemeliharaan server.
+        Pengembang berhak untuk sewaktu-waktu mengubah, menangguhkan, atau menghentikan sebagian maupun seluruh fitur Layanan AlternatePay tanpa pemberitahuan sebelumnya, terutama apabila terjadi perubahan sistem, kebijakan, atau penutupan akses dari sistem upstream GoBiz/GoPay maupun Shopee Partner/ShopeePay, ataupun alasan pemeliharaan server.
       </p>
       <p>
         Syarat & Ketentuan ini dapat diperbarui sewaktu-waktu. Penggunaan berkelanjutan atas Layanan setelah perubahan diumumkan merupakan bentuk persetujuan Anda terhadap versi terbaru dari Syarat & Ketentuan ini.
