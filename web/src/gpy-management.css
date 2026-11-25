@@ -1,3 +1,114 @@
+/* Tabs for Koneksi Merchant */
+.merchant-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: #ebeef2;
+  padding: 4px;
+  border-radius: 9px;
+  width: fit-content;
+}
+
+.merchant-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #555d67;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.merchant-tab-btn:hover {
+  color: #17191d;
+}
+
+.merchant-tab-btn.is-active {
+  background: #ffffff;
+  color: #17191d;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.merchant-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.merchant-badge-active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.merchant-badge-inactive {
+  background: #f1f3f4;
+  color: #5f6368;
+}
+
+/* Switch toggle switch for provider */
+.toggle-switch-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.toggle-switch-info h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #20252a;
+}
+
+.toggle-switch-info p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #737983;
+}
+
+.toggle-switch-btn {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  padding: 2px;
+}
+
+.toggle-switch-btn.is-on {
+  background: #285846;
+}
+
+.toggle-switch-handle {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+}
+
+.toggle-switch-btn.is-on .toggle-switch-handle {
+  transform: translateX(20px);
+}
+
 /* GoPay Management page styling - Studio design system tokens & alignment */
 
 .gpy-management-shell {

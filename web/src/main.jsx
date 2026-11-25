@@ -105,7 +105,7 @@ function readQrisFromImage(file) {
   });
 }
 
-function QrisCard({ configured, onSaved }) {
+function QrisCard({ configured, onSaved, endpoint = '/api/qris', title = 'QRIS statis', sectionNumber = '02 / QRIS CONFIGURATION' }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
@@ -143,7 +143,7 @@ function QrisCard({ configured, onSaved }) {
     if (!payload) return;
     setBusy(true); setError(''); setNotice('');
     try {
-      await request('/api/qris', { method: 'PUT', body: JSON.stringify({ staticQris: payload }) });
+      await request(endpoint, { method: 'PUT', body: JSON.stringify({ staticQris: payload }) });
       setNotice('QRIS berhasil disimpan.');
       reset();
       if (onSaved) await onSaved();
@@ -158,8 +158,8 @@ function QrisCard({ configured, onSaved }) {
     <section className="gpy-panel" id="qris">
       <div className="gpy-panel-head">
         <div>
-          <p className="gpy-section-label">02 / QRIS CONFIGURATION</p>
-          <h3>QRIS statis</h3>
+          <p className="gpy-section-label">{sectionNumber}</p>
+          <h3>{title}</h3>
         </div>
         <QrCode size={18} />
       </div>
@@ -212,15 +212,14 @@ function QrisCard({ configured, onSaved }) {
             {!reading && !payload && error && (
               <span className="gpy-qris-state is-error"><X size={13} /> QRIS tidak terbaca</span>
             )}
-            {payload && <code className="gpy-qris-payload">{payload}</code>}
           </div>
         </div>
       )}
 
-      {file && (
-        <div className="gpy-actions-row">
-          <button className="gpy-btn gpy-btn-primary gpy-btn-block" onClick={save} disabled={busy || reading || !payload}>
-            {busy ? <><Loader2 size={14} className="gpy-spin" /> Menyimpan…</> : <>Konfirmasi &amp; Simpan <Check size={14} /></>}
+      {payload && (
+        <div className="gpy-qris-confirm">
+          <button className="gpy-btn gpy-btn-primary gpy-btn-full" onClick={save} disabled={busy || reading}>
+            <Save size={14} /> {busy ? 'Menyimpan…' : 'Simpan QRIS'}
           </button>
         </div>
       )}
@@ -229,23 +228,41 @@ function QrisCard({ configured, onSaved }) {
     </section>
   );
 }
-function GoPayManagement() {
+function MerchantConnection() {
   const [data, setData] = useState(null);
+  const [activeTab, setActiveTab] = useState('gopay'); // 'gopay' | 'shopeepay'
+
+  // GoPay state
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [loggingOutGopay, setLoggingOutGopay] = useState(false);
+
+  // ShopeePay state
+  const [shopeePhone, setShopeePhone] = useState('');
+  const [shopeePassword, setShopeePassword] = useState('');
+  const [shopeeOtp, setShopeeOtp] = useState('');
+  const [shopeeOtpSent, setShopeeOtpSent] = useState(false);
+  const [shopeeChannel, setShopeeChannel] = useState(3);
+  const [shopeeNeedStoreSelection, setShopeeNeedStoreSelection] = useState(false);
+  const [shopeeStores, setShopeeStores] = useState([]);
+  const [shopeeLogoutModalOpen, setShopeeLogoutModalOpen] = useState(false);
+  const [loggingOutShopee, setLoggingOutShopee] = useState(false);
+
+  // Common UI state
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
-  const [loggingOutGopay, setLoggingOutGopay] = useState(false);
 
   const load = async () => {
     try {
       const result = await request('/api/dashboard');
       setData(result);
-      setPhone(result.gopay.phone_number || '');
-      setOtpSent(result.gopay.status === 'otp_pending');
+      setPhone(result.gopay?.phone_number || '');
+      setOtpSent(result.gopay?.status === 'otp_pending');
+      setShopeePhone(result.shopee?.phone_number || '');
+      setShopeeOtpSent(result.shopee?.status === 'otp_pending');
     } catch (e) {
       if (e.message.includes('Login')) window.location.href = '/';
       else setError(e.message);
@@ -254,6 +271,23 @@ function GoPayManagement() {
 
   useEffect(() => { load(); }, []);
 
+  const switchProvider = async (targetProvider) => {
+    if (data?.activeProvider === targetProvider) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/merchant/provider', { method: 'POST', body: JSON.stringify({ provider: targetProvider }) });
+      setNotice(`Provider aktif berhasil diubah ke ${targetProvider === 'shopeepay' ? 'ShopeePay' : 'GoPay'}.`);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // --- GoPay Handlers ---
   const startGoPay = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -344,6 +378,112 @@ function GoPayManagement() {
     }
   };
 
+  // --- ShopeePay Handlers ---
+  const startShopee = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await request('/api/shopee/connect/start', {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber: shopeePhone, password: shopeePassword, channel: shopeeChannel })
+      });
+      setShopeeOtpSent(true);
+      setNotice(`Kode verifikasi Shopee dikirim via ${result.channel === 3 ? 'WhatsApp' : 'SMS'}.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyShopee = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await request('/api/shopee/connect/verify', {
+        method: 'POST',
+        body: JSON.stringify({ otp: shopeeOtp })
+      });
+      if (result.needStoreSelection) {
+        setShopeeNeedStoreSelection(true);
+        setShopeeStores(result.stores || []);
+        setNotice('Silakan pilih toko Shopee Partner kamu.');
+        return;
+      }
+      setShopeeOtp('');
+      setShopeePassword('');
+      setShopeeOtpSent(false);
+      setNotice('ShopeePay Merchant berhasil terhubung.');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const selectShopeeStore = async (storeId) => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/shopee/connect/select-store', {
+        method: 'POST',
+        body: JSON.stringify({ storeId })
+      });
+      setShopeeNeedStoreSelection(false);
+      setShopeeOtp('');
+      setShopeePassword('');
+      setShopeeOtpSent(false);
+      setNotice('Toko ShopeePay berhasil dipilih dan terhubung.');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resetShopee = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/shopee/connect/reset', { method: 'POST' });
+      setShopeeOtp('');
+      setShopeeOtpSent(false);
+      setShopeeNeedStoreSelection(false);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const logoutShopee = async () => {
+    setLoggingOutShopee(true);
+    setError('');
+    setNotice('');
+    try {
+      await request('/api/shopee/logout', { method: 'POST' });
+      setShopeeLogoutModalOpen(false);
+      setShopeeOtp('');
+      setShopeeOtpSent(false);
+      setShopeePhone('');
+      setShopeePassword('');
+      setNotice('Berhasil logout dari akun ShopeePay.');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoggingOutShopee(false);
+    }
+  };
+
   const logout = async () => {
     await request('/api/auth/logout', { method: 'POST' });
     window.location.href = '/';
@@ -351,8 +491,12 @@ function GoPayManagement() {
 
   if (!data) return <div className="loading">Memuat workspace…</div>;
 
-  const isConnected = data.gopay.status === 'connected';
-  const showQrisCard = isConnected && !data.qris.configured;
+  const isGopayConnected = data.gopay?.status === 'connected';
+  const isShopeeConnected = data.shopee?.status === 'connected';
+  const showGopayQrisCard = isGopayConnected && !data.qris?.configured;
+  const showShopeeQrisCard = isShopeeConnected && !data.shopeeQris?.configured;
+  const isGopayActive = data.activeProvider === 'gopay';
+  const isShopeeActive = data.activeProvider === 'shopeepay';
 
   return (
     <div className="page-shell">
@@ -362,81 +506,261 @@ function GoPayManagement() {
           {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
           {error && <div className="gpy-error">{error}</div>}
 
-          <section className="gpy-panel" id="connection">
-            <div className="gpy-panel-head">
-              <div>
-                <p className="gpy-section-label">01 / CONNECTION</p>
-                <h3>{data.gopay.merchant_name || 'GoPay Merchant'}</h3>
-              </div>
-              <Smartphone size={18} />
-            </div>
-            {data.gopay.merchant_name && (
-              <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
-            )}
-            {data.gopay.owner_name && (
-              <Row icon={User} label="Owner" value={data.gopay.owner_name} />
-            )}
-            {data.gopay.merchant_id && (
-              <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
-            )}
-            <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
-            <Row
-              icon={QrCode}
-              label="String Qris"
-              value={data.qris.configured ? 'Oke' : 'Belum diatur'}
-              valueClass={data.qris.configured ? 'gpy-status-active' : ''}
-            />
-            <Row
-              icon={ShieldCheck}
-              label="Session"
-              value={isConnected ? 'Active' : 'Belum terhubung'}
-              valueClass={isConnected ? 'gpy-status-active' : ''}
-            />
-            {!isConnected && !otpSent && (
-              <form onSubmit={startGoPay} className="gpy-form">
-                <label className="gpy-label" htmlFor="phone">Nomor GoPay/GoBiz</label>
-                <input className="gpy-input" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
-                <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !phone.trim()}>
-                  <RefreshCw size={14} /> {busy ? 'Mengirim OTP…' : 'Kirim OTP'}
-                </button>
-              </form>
-            )}
-            {!isConnected && otpSent && (
-              <form onSubmit={verifyGoPay} className="gpy-form">
-                <label className="gpy-label" htmlFor="otp">Kode OTP</label>
-                <input className="gpy-input" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
-                <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
-                  <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi OTP'}
-                </button>
-                <div className="gpy-actions-row">
-                  <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resendGoPayOtp} disabled={busy}>
-                    <RefreshCw size={14} /> Kirim ulang OTP
-                  </button>
-                  <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resetGoPayPhone} disabled={busy}>
-                    Ganti nomor
+          <div className="merchant-tabs">
+            <button
+              type="button"
+              className={`merchant-tab-btn ${activeTab === 'gopay' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('gopay')}
+            >
+              <Smartphone size={16} />
+              <span>GoPay</span>
+              <span className={`merchant-badge ${isGopayActive ? 'merchant-badge-active' : 'merchant-badge-inactive'}`}>
+                {isGopayActive ? 'ON' : 'OFF'}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`merchant-tab-btn ${activeTab === 'shopeepay' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('shopeepay')}
+            >
+              <Smartphone size={16} />
+              <span>ShopeePay</span>
+              <span className={`merchant-badge ${isShopeeActive ? 'merchant-badge-active' : 'merchant-badge-inactive'}`}>
+                {isShopeeActive ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          </div>
+
+          {activeTab === 'gopay' && (
+            <>
+              <section className="gpy-panel" id="gopay-connection">
+                <div className="gpy-panel-head">
+                  <div>
+                    <p className="gpy-section-label">01 / CONNECTION · GOPAY</p>
+                    <h3>{data.gopay?.merchant_name || 'GoPay Merchant'}</h3>
+                  </div>
+                  <Smartphone size={18} />
+                </div>
+
+                <div className="toggle-switch-wrapper">
+                  <div className="toggle-switch-info">
+                    <h4>Aktifkan GoPay sebagai Gateway</h4>
+                    <p>{isGopayActive ? 'GoPay sedang aktif menerima pembayaran' : 'GoPay nonaktif'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={`toggle-switch-btn ${isGopayActive ? 'is-on' : ''}`}
+                    onClick={() => switchProvider(isGopayActive ? 'shopeepay' : 'gopay')}
+                    disabled={busy || !isGopayConnected}
+                    title={!isGopayConnected ? 'Hubungkan akun GoPay terlebih dahulu' : 'Toggle status GoPay'}
+                    aria-label="Toggle GoPay"
+                  >
+                    <span className="toggle-switch-handle" />
                   </button>
                 </div>
-              </form>
-            )}
-            {isConnected && (
-              <>
-                <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
-                  <RefreshCw size={14} /> Reconnect GoPay
-                </button>
-                <button
-                  type="button"
-                  className="gpy-btn gpy-btn-danger gpy-btn-full"
-                  onClick={() => setLogoutModalOpen(true)}
-                  disabled={busy || loggingOutGopay}
-                >
-                  <LogOut size={14} /> Logout GoPay
-                </button>
-              </>
-            )}
-          </section>
 
-          {showQrisCard && (
-            <QrisCard configured={Boolean(data.qris.configured)} onSaved={load} />
+                {data.gopay?.merchant_name && (
+                  <Row icon={Store} label="Outlet" value={data.gopay.merchant_name} />
+                )}
+                {data.gopay?.owner_name && (
+                  <Row icon={User} label="Owner" value={data.gopay.owner_name} />
+                )}
+                {data.gopay?.merchant_id && (
+                  <Row icon={Hash} label="Merchant ID" value={data.gopay.merchant_id} />
+                )}
+                <Row icon={Smartphone} label="Phone number" value={phone || 'Belum diatur'} />
+                <Row
+                  icon={QrCode}
+                  label="String Qris"
+                  value={data.qris?.configured ? 'Oke' : 'Belum diatur'}
+                  valueClass={data.qris?.configured ? 'gpy-status-active' : ''}
+                />
+                <Row
+                  icon={ShieldCheck}
+                  label="Session"
+                  value={isGopayConnected ? 'Active' : 'Belum terhubung'}
+                  valueClass={isGopayConnected ? 'gpy-status-active' : ''}
+                />
+
+                {!isGopayConnected && !otpSent && (
+                  <form onSubmit={startGoPay} className="gpy-form">
+                    <label className="gpy-label" htmlFor="gopay-phone">Nomor GoPay/GoBiz</label>
+                    <input className="gpy-input" id="gopay-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
+                    <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !phone.trim()}>
+                      <RefreshCw size={14} /> {busy ? 'Mengirim OTP…' : 'Kirim OTP'}
+                    </button>
+                  </form>
+                )}
+
+                {!isGopayConnected && otpSent && (
+                  <form onSubmit={verifyGoPay} className="gpy-form">
+                    <label className="gpy-label" htmlFor="gopay-otp">Kode OTP</label>
+                    <input className="gpy-input" id="gopay-otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
+                    <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
+                      <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi OTP'}
+                    </button>
+                    <div className="gpy-actions-row">
+                      <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resendGoPayOtp} disabled={busy}>
+                        <RefreshCw size={14} /> Kirim ulang OTP
+                      </button>
+                      <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resetGoPayPhone} disabled={busy}>
+                        Ganti nomor
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {isGopayConnected && (
+                  <>
+                    <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setOtpSent(false); setNotice('Masukkan nomor baru untuk reconnect.'); }}>
+                      <RefreshCw size={14} /> Reconnect GoPay
+                    </button>
+                    <button
+                      type="button"
+                      className="gpy-btn gpy-btn-danger gpy-btn-full"
+                      onClick={() => setLogoutModalOpen(true)}
+                      disabled={busy || loggingOutGopay}
+                    >
+                      <LogOut size={14} /> Logout GoPay
+                    </button>
+                  </>
+                )}
+              </section>
+
+              {showGopayQrisCard && (
+                <QrisCard configured={Boolean(data.qris?.configured)} onSaved={load} endpoint="/api/qris" title="QRIS Statis GoPay" sectionNumber="02 / QRIS GOPAY" />
+              )}
+            </>
+          )}
+
+          {activeTab === 'shopeepay' && (
+            <>
+              <section className="gpy-panel" id="shopee-connection">
+                <div className="gpy-panel-head">
+                  <div>
+                    <p className="gpy-section-label">01 / CONNECTION · SHOPEEPAY</p>
+                    <h3>{data.shopee?.store_name || data.shopee?.merchant_name || 'ShopeePay Merchant'}</h3>
+                  </div>
+                  <Smartphone size={18} />
+                </div>
+
+                <div className="toggle-switch-wrapper">
+                  <div className="toggle-switch-info">
+                    <h4>Aktifkan ShopeePay sebagai Gateway</h4>
+                    <p>{isShopeeActive ? 'ShopeePay sedang aktif menerima pembayaran' : 'ShopeePay nonaktif'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={`toggle-switch-btn ${isShopeeActive ? 'is-on' : ''}`}
+                    onClick={() => switchProvider(isShopeeActive ? 'gopay' : 'shopeepay')}
+                    disabled={busy || !isShopeeConnected}
+                    title={!isShopeeConnected ? 'Hubungkan akun ShopeePay terlebih dahulu' : 'Toggle status ShopeePay'}
+                    aria-label="Toggle ShopeePay"
+                  >
+                    <span className="toggle-switch-handle" />
+                  </button>
+                </div>
+
+                {data.shopee?.store_name && (
+                  <Row icon={Store} label="Store" value={data.shopee.store_name} />
+                )}
+                {data.shopee?.merchant_name && (
+                  <Row icon={User} label="Merchant" value={data.shopee.merchant_name} />
+                )}
+                {data.shopee?.store_id && (
+                  <Row icon={Hash} label="Store ID" value={data.shopee.store_id} />
+                )}
+                <Row icon={Smartphone} label="Phone number" value={shopeePhone || 'Belum diatur'} />
+                <Row
+                  icon={QrCode}
+                  label="String Qris"
+                  value={data.shopeeQris?.configured ? 'Oke' : 'Belum diatur'}
+                  valueClass={data.shopeeQris?.configured ? 'gpy-status-active' : ''}
+                />
+                <Row
+                  icon={ShieldCheck}
+                  label="Session"
+                  value={isShopeeConnected ? 'Active' : 'Belum terhubung'}
+                  valueClass={isShopeeConnected ? 'gpy-status-active' : ''}
+                />
+
+                {!isShopeeConnected && !shopeeOtpSent && !shopeeNeedStoreSelection && (
+                  <form onSubmit={startShopee} className="gpy-form">
+                    <label className="gpy-label" htmlFor="shopee-phone">Nomor HP Shopee Partner</label>
+                    <input className="gpy-input" id="shopee-phone" value={shopeePhone} onChange={(e) => setShopeePhone(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="tel" />
+                    <label className="gpy-label" htmlFor="shopee-password" style={{ marginTop: '10px' }}>Password Akun Shopee</label>
+                    <input className="gpy-input" id="shopee-password" type="password" value={shopeePassword} onChange={(e) => setShopeePassword(e.target.value)} placeholder="Password akun Shopee" />
+                    <div style={{ marginTop: '10px', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input type="radio" name="channel" value={3} checked={shopeeChannel === 3} onChange={() => setShopeeChannel(3)} /> WhatsApp
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input type="radio" name="channel" value={1} checked={shopeeChannel === 1} onChange={() => setShopeeChannel(1)} /> SMS
+                      </label>
+                    </div>
+                    <button className="gpy-btn gpy-btn-secondary gpy-btn-full" disabled={busy || !shopeePhone.trim() || !shopeePassword.trim()} style={{ marginTop: '14px' }}>
+                      <RefreshCw size={14} /> {busy ? 'Mengirim OTP…' : 'Kirim Kode Verifikasi'}
+                    </button>
+                  </form>
+                )}
+
+                {!isShopeeConnected && shopeeOtpSent && !shopeeNeedStoreSelection && (
+                  <form onSubmit={verifyShopee} className="gpy-form">
+                    <label className="gpy-label" htmlFor="shopee-otp">Kode OTP (WhatsApp/SMS)</label>
+                    <input className="gpy-input" id="shopee-otp" value={shopeeOtp} onChange={(e) => setShopeeOtp(e.target.value)} placeholder="Masukkan kode OTP" inputMode="numeric" autoComplete="one-time-code" />
+                    <button className="gpy-btn gpy-btn-primary gpy-btn-full" disabled={busy}>
+                      <Check size={14} /> {busy ? 'Memverifikasi…' : 'Verifikasi & Hubungkan'}
+                    </button>
+                    <div className="gpy-actions-row">
+                      <button type="button" className="gpy-btn gpy-btn-secondary" onClick={resetShopee} disabled={busy}>
+                        Batal / Ganti Nomor
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {shopeeNeedStoreSelection && (
+                  <div className="gpy-form">
+                    <label className="gpy-label">Pilih Toko Shopee</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                      {shopeeStores.map((s) => (
+                        <button
+                          key={s.storeId}
+                          type="button"
+                          className="gpy-btn gpy-btn-secondary"
+                          style={{ justifyContent: 'space-between' }}
+                          onClick={() => selectShopeeStore(s.storeId)}
+                          disabled={busy}
+                        >
+                          <span>{s.storeName} ({s.storeId})</span>
+                          <Check size={14} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isShopeeConnected && (
+                  <>
+                    <button className="gpy-btn gpy-btn-secondary gpy-btn-full" onClick={() => { setShopeeOtpSent(false); setNotice('Masukkan kredensial untuk reconnect.'); }}>
+                      <RefreshCw size={14} /> Reconnect ShopeePay
+                    </button>
+                    <button
+                      type="button"
+                      className="gpy-btn gpy-btn-danger gpy-btn-full"
+                      onClick={() => setShopeeLogoutModalOpen(true)}
+                      disabled={busy || loggingOutShopee}
+                    >
+                      <LogOut size={14} /> Logout ShopeePay
+                    </button>
+                  </>
+                )}
+              </section>
+
+              {showShopeeQrisCard && (
+                <QrisCard configured={Boolean(data.shopeeQris?.configured)} onSaved={load} endpoint="/api/shopee/qris" title="QRIS Statis ShopeePay" sectionNumber="02 / QRIS SHOPEEPAY" />
+              )}
+            </>
           )}
 
           {logoutModalOpen && (
@@ -472,6 +796,45 @@ function GoPayManagement() {
                     disabled={loggingOutGopay}
                   >
                     {loggingOutGopay ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Konfirmasi'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {shopeeLogoutModalOpen && (
+            <div className="gpy-modal-backdrop" onClick={() => !loggingOutShopee && setShopeeLogoutModalOpen(false)}>
+              <div className="gpy-modal-card" role="dialog" aria-modal="true" aria-labelledby="shopee-logout-title" onClick={(e) => e.stopPropagation()}>
+                <div className="gpy-modal-head">
+                  <h4 id="shopee-logout-title">Logout ShopeePay?</h4>
+                  <button
+                    type="button"
+                    className="gpy-modal-close"
+                    onClick={() => !loggingOutShopee && setShopeeLogoutModalOpen(false)}
+                    aria-label="Tutup modal"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="gpy-modal-body">
+                  Sesi Shopee Partner, token, dan string QRIS Shopee yang tersimpan akan dihapus dari sistem. Kamu harus login kembali untuk mengaktifkan koneksi ShopeePay.
+                </p>
+                <div className="gpy-modal-actions">
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-secondary"
+                    onClick={() => setShopeeLogoutModalOpen(false)}
+                    disabled={loggingOutShopee}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-danger"
+                    onClick={logoutShopee}
+                    disabled={loggingOutShopee}
+                  >
+                    {loggingOutShopee ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Konfirmasi'}
                   </button>
                 </div>
               </div>
@@ -1445,7 +1808,7 @@ function App() {
   if (!auth) return <div className="loading">Memuat…</div>;
   if (!auth.authenticated) return <Login />;
 
-  if (path === '/gpy-manager') return <GoPayManagement />;
+  if (path === '/gpy-manager' || path === '/koneksi-merchant') return <MerchantConnection />;
   if (path === '/apikey') return <ApiKeyPage />;
   return <StudioTransactionDashboard request={request} user={auth.user || {}} />;
 }

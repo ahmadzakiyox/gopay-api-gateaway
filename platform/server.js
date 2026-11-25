@@ -14,6 +14,13 @@ const { createLocalJWKSet, jwtVerify } = require('jose');
 const { encrypt, decrypt, randomApiKey } = require('./crypto');
 const { generateDynamicQRIS, validateQris } = require('./qris');
 const { requestOtp, verifyOtp, clearPendingOtp, hasPendingOtp, listTransactions, fetchMerchantProfile } = require('./gopayAdapter');
+const {
+  requestShopeeOtp,
+  verifyShopeeOtp,
+  completeShopeeLogin,
+  refreshShopeeSession,
+  listShopeeTransactions
+} = require('./shopeeAdapter');
 const { MAX_PAYABLE_AMOUNT, allocateUniqueAmount, normalizeTransaction, transactionMatchesPayment, toMysqlDateTime } = require('./paymentLogic');
 const { getPaymentForUser } = require('./paymentStatus');
 const { validateWebhookUrl, buildWebhookPayload, sendWebhook } = require('./webhook');
@@ -150,6 +157,8 @@ async function pollMerchantPayments(userId) {
   }
 }
 const oauthStates = new Map();
+const pendingShopeeChallenges = new Map();
+const pendingShopeeVerifications = new Map();
 let telegramJwksPromise;
 async function telegramKeyResolver(header, token) {
   if (!telegramJwksPromise) {
@@ -269,6 +278,45 @@ async function pollMerchantPayments(userId) {
   }
 }
 
+async function pollShopeePayments(userId) {
+  checkRateLimit(userId);
+  const connection = await pool.getConnection();
+  try {
+    const [pendingRows] = await connection.execute("SELECT 1 FROM payments WHERE user_id=? AND provider='shopeepay' AND status='pending' AND expires_at > NOW(3) LIMIT 1", [userId]);
+    if (!pendingRows.length) return 0;
+    const [accounts] = await connection.execute("SELECT merchant_id, store_id, encrypted_session FROM shopee_accounts WHERE user_id=? AND status='connected'", [userId]);
+    if (!accounts[0]?.encrypted_session) return 0;
+    const session = JSON.parse(decrypt(accounts[0].encrypted_session));
+    const end = new Date();
+    const start = new Date(end.getTime() - 36 * 60 * 60 * 1000);
+    const { transactions, session: activeSession } = await listShopeeTransactions(session, {
+      startTime: start.toISOString(),
+      endTime: end.toISOString()
+    });
+    if (activeSession && activeSession !== session) {
+      await connection.execute('UPDATE shopee_accounts SET encrypted_session=? WHERE user_id=?', [encrypt(JSON.stringify(activeSession)), userId]);
+    }
+    let settled = 0;
+    for (const transaction of transactions) {
+      const [payments] = await connection.execute("SELECT id, order_id, base_amount, surcharge, payable_amount, status, created_at, expires_at FROM payments WHERE user_id=? AND provider='shopeepay' AND status='pending' AND payable_amount=? AND created_at <= ? AND expires_at >= ? ORDER BY created_at ASC LIMIT 2 FOR UPDATE", [userId, transaction.amount, transaction.transactionTime, transaction.transactionTime]);
+      if (payments.length !== 1 || !transactionMatchesPayment(transaction, payments[0])) continue;
+      const settledAt = toMysqlDateTime(transaction.transactionTime);
+      const [updated] = await connection.execute("UPDATE payments SET status='paid', provider_transaction_id=?, provider_order_id=?, provider_payment_type=?, provider_issuer=?, provider_transaction_time=?, paid_at=? WHERE id=? AND user_id=? AND status='pending'", [transaction.transactionId, transaction.orderId, transaction.paymentType, transaction.issuer, settledAt, settledAt, payments[0].id, userId]);
+      if (updated.affectedRows === 1) {
+        settled += 1;
+        await audit(userId, 'shopee_payment_paid', { trxId: payments[0].id, orderId: payments[0].order_id, amount: Number(payments[0].payable_amount), providerTransactionId: transaction.transactionId });
+        dispatchPaymentWebhook(userId, payments[0].id).catch((err) => console.error('dispatch webhook error:', err.message));
+      }
+    }
+    return settled;
+  } catch (err) {
+    console.error(`pollShopeePayments error for user ${userId}:`, err.message);
+    return 0;
+  } finally {
+    connection.release();
+  }
+}
+
 async function userFromRequest(req) {
   const sid = req.cookies.user_session;
   if (!sid) return null;
@@ -323,8 +371,13 @@ app.post('/api/auth/logout', async (req, res) => { if (req.cookies.user_session)
 require('./transactionReports').registerTransactionReports(app, pool, requireUser);
 
 app.get('/api/dashboard', requireUser, async (req, res) => {
+  const [userRows] = await pool.execute("SELECT active_provider FROM users WHERE id=?", [req.user.id]);
+  const activeProvider = userRows[0]?.active_provider === 'shopeepay' ? 'shopeepay' : 'gopay';
+
   const [gopay] = await pool.execute("SELECT phone_number, merchant_id, merchant_name, owner_name, encrypted_session, status, last_error, updated_at FROM gopay_accounts WHERE user_id=?", [req.user.id]);
   const [qris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM qris_configs WHERE user_id=?', [req.user.id]);
+  const [shopee] = await pool.execute("SELECT phone_number, merchant_id, merchant_name, store_id, store_name, encrypted_session, status, last_error, updated_at FROM shopee_accounts WHERE user_id=?", [req.user.id]);
+  const [shopeeQris] = await pool.execute('SELECT static_qris, is_valid, updated_at FROM shopee_qris_configs WHERE user_id=?', [req.user.id]);
   const [key] = await pool.execute('SELECT key_prefix, service_type, created_at, rotated_at FROM api_keys WHERE user_id=?', [req.user.id]);
   const [webhook] = await pool.execute('SELECT webhook_url, secret, is_active, updated_at FROM webhook_configs WHERE user_id=?', [req.user.id]);
 
@@ -351,14 +404,24 @@ app.get('/api/dashboard', requireUser, async (req, res) => {
     }
   }
 
+  let shopeeData = shopee[0] || { status: 'disconnected' };
+  if (shopeeData.status === 'otp_pending' && !pendingShopeeChallenges.has(req.user.id)) {
+    await pool.execute("UPDATE shopee_accounts SET status='disconnected' WHERE user_id=? AND status='otp_pending'", [req.user.id]);
+    shopeeData.status = 'disconnected';
+  }
+
   // Remove encrypted_session from response payload
   const { encrypted_session, ...sanitizedGopay } = gopayData;
+  const { encrypted_session: shopeeEncSession, ...sanitizedShopee } = shopeeData;
 
   res.json({
     success: true,
-    user: req.user,
+    user: { ...req.user, activeProvider },
+    activeProvider,
     gopay: sanitizedGopay,
     qris: qris[0] ? { configured: true, isValid: Boolean(qris[0].is_valid), updatedAt: qris[0].updated_at, staticQris: qris[0].static_qris } : { configured: false },
+    shopee: sanitizedShopee,
+    shopeeQris: shopeeQris[0] ? { configured: true, isValid: Boolean(shopeeQris[0].is_valid), updatedAt: shopeeQris[0].updated_at, staticQris: shopeeQris[0].static_qris } : { configured: false },
     apiKey: key[0] || null,
     webhook: webhook[0] ? { url: webhook[0].webhook_url, secret: webhook[0].secret, isActive: Boolean(webhook[0].is_active), updatedAt: webhook[0].updated_at } : null
   });
@@ -494,13 +557,23 @@ const pollingUsers = new Set();
 const pollingTimer = setInterval(() => {
   pool.execute("SELECT user_id FROM gopay_accounts WHERE status='connected'")
     .then(([rows]) => rows.forEach(({ user_id: userId }) => {
-      if (pollingUsers.has(String(userId))) return;
-      pollingUsers.add(String(userId));
+      if (pollingUsers.has(`gopay:${userId}`)) return;
+      pollingUsers.add(`gopay:${userId}`);
       pollMerchantPayments(userId)
         .catch((error) => console.error('GoPay payment polling failed:', error.message))
-        .finally(() => pollingUsers.delete(String(userId)));
+        .finally(() => pollingUsers.delete(`gopay:${userId}`));
     }))
     .catch((error) => console.error('GoPay poll scheduler failed:', error.message));
+
+  pool.execute("SELECT user_id FROM shopee_accounts WHERE status='connected'")
+    .then(([rows]) => rows.forEach(({ user_id: userId }) => {
+      if (pollingUsers.has(`shopee:${userId}`)) return;
+      pollingUsers.add(`shopee:${userId}`);
+      pollShopeePayments(userId)
+        .catch((error) => console.error('Shopee payment polling failed:', error.message))
+        .finally(() => pollingUsers.delete(`shopee:${userId}`));
+    }))
+    .catch((error) => console.error('Shopee poll scheduler failed:', error.message));
 }, DEFAULT_PAYMENT_INTERVAL_MS);
 pollingTimer.unref();
 
@@ -535,24 +608,47 @@ async function createPaymentForUser(userId, input) {
       await connection.commit();
       return { row: existing, created: false };
     }
-    const [[account]] = await connection.execute("SELECT merchant_id, status FROM gopay_accounts WHERE user_id=? FOR UPDATE", [userId]);
-    if (!account || account.status !== 'connected' || !account.merchant_id) {
-      const error = new Error('Akun GoPay Merchant belum terhubung');
-      error.statusCode = 409;
-      throw error;
+    // Check user active_provider
+    const [[userRow]] = await connection.execute("SELECT active_provider FROM users WHERE id=? LIMIT 1", [userId]);
+    const activeProvider = userRow?.active_provider === 'shopeepay' ? 'shopeepay' : 'gopay';
+
+    let staticQrisPayload = '';
+    if (activeProvider === 'shopeepay') {
+      const [[shopeeAcc]] = await connection.execute("SELECT merchant_id, status FROM shopee_accounts WHERE user_id=? FOR UPDATE", [userId]);
+      if (!shopeeAcc || shopeeAcc.status !== 'connected') {
+        const error = new Error('Akun ShopeePay Merchant belum terhubung');
+        error.statusCode = 409;
+        throw error;
+      }
+      const [shopeeConfigs] = await connection.execute('SELECT static_qris FROM shopee_qris_configs WHERE user_id=? AND is_valid=1', [userId]);
+      if (!shopeeConfigs[0]) {
+        const error = new Error('Simpan QRIS ShopeePay Merchant terlebih dahulu');
+        error.statusCode = 409;
+        throw error;
+      }
+      staticQrisPayload = shopeeConfigs[0].static_qris;
+    } else {
+      const [[account]] = await connection.execute("SELECT merchant_id, status FROM gopay_accounts WHERE user_id=? FOR UPDATE", [userId]);
+      if (!account || account.status !== 'connected' || !account.merchant_id) {
+        const error = new Error('Akun GoPay Merchant belum terhubung');
+        error.statusCode = 409;
+        throw error;
+      }
+      const [configs] = await connection.execute('SELECT static_qris FROM qris_configs WHERE user_id=? AND is_valid=1', [userId]);
+      if (!configs[0]) {
+        const error = new Error('Simpan QRIS GoPay Merchant terlebih dahulu');
+        error.statusCode = 409;
+        throw error;
+      }
+      staticQrisPayload = configs[0].static_qris;
     }
+
     const now = new Date();
     const [busyRows] = await connection.execute("SELECT payable_amount FROM payments WHERE user_id=? AND status='pending' AND reservation_until>? FOR UPDATE", [userId, now]);
     const allocation = allocateUniqueAmount(input.amount, new Set(busyRows.map((row) => Number(row.payable_amount))), PAYMENT_MIN_SURCHARGE, PAYMENT_MAX_SURCHARGE);
     const expiresAt = new Date(now.getTime() + PAYMENT_EXPIRY_MS);
     const reservationUntil = new Date(expiresAt.getTime() + 36 * 60 * 60 * 1000);
     const trxId = crypto.randomUUID();
-    const [configs] = await connection.execute('SELECT static_qris FROM qris_configs WHERE user_id=? AND is_valid=1', [userId]);
-    if (!configs[0]) {
-      const error = new Error('Simpan QRIS GoPay Merchant terlebih dahulu');
-      error.statusCode = 409;
-      throw error;
-    }
     let initialWebhookUrl = input.webhookUrl || null;
     if (!initialWebhookUrl) {
       const [[userWebhook]] = await connection.execute('SELECT webhook_url FROM webhook_configs WHERE user_id=? AND is_active=1 LIMIT 1', [userId]);
@@ -560,8 +656,8 @@ async function createPaymentForUser(userId, input) {
         initialWebhookUrl = userWebhook.webhook_url;
       }
     }
-    const qrisPayload = generateDynamicQRIS(configs[0].static_qris, allocation.payableAmount);
-    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,status,expires_at,reservation_until,webhook_url) VALUES (?,?,?,?,?,?,?,?, 'pending',?,?,?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,expiresAt,reservationUntil,initialWebhookUrl]);
+    const qrisPayload = generateDynamicQRIS(staticQrisPayload, allocation.payableAmount);
+    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,provider,status,expires_at,reservation_until,webhook_url) VALUES (?,?,?,?,?,?,?,?,?, 'pending',?,?,?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,activeProvider,expiresAt,reservationUntil,initialWebhookUrl]);
     const [[created]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=?', [trxId,userId]);
     await connection.commit();
     return { row: created, created: true };
@@ -676,6 +772,204 @@ const qrisSchema = z.object({ staticQris: z.string().trim().min(20).max(1000) })
 app.put('/api/qris', requireUser, async (req, res) => { const parsed = qrisSchema.safeParse(req.body); if (!parsed.success) return fail(res, 400, 'QRIS tidak valid atau terlalu pendek'); let staticQris; try { staticQris = validateQris(parsed.data.staticQris); } catch (error) { return fail(res, 400, error.message); } await pool.execute('INSERT INTO qris_configs (user_id, static_qris, is_valid) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE static_qris=VALUES(static_qris), is_valid=1', [req.user.id, staticQris]); await audit(req.user.id, 'qris_updated'); res.json({ success: true }); });
 app.post('/api/qris/preview', requireUser, async (req, res) => { const parsed = z.object({ amount: z.coerce.number().int().positive().max(999999999) }).safeParse(req.body); if (!parsed.success) return fail(res, 400, 'Nominal tidak valid'); const [rows] = await pool.execute('SELECT static_qris FROM qris_configs WHERE user_id=?', [req.user.id]); if (!rows[0]) return fail(res, 404, 'QRIS belum disimpan'); try { res.json({ success: true, qris: generateDynamicQRIS(rows[0].static_qris, parsed.data.amount) }); } catch (error) { return fail(res, 400, error.message); } });
 app.delete('/api/qris', requireUser, async (req, res) => { await pool.execute('DELETE FROM qris_configs WHERE user_id=?', [req.user.id]); await audit(req.user.id, 'qris_deleted'); res.json({ success: true }); });
+
+app.post('/api/merchant/provider', requireUser, async (req, res) => {
+  const parsed = z.object({ provider: z.enum(['gopay', 'shopeepay']) }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'Provider harus gopay atau shopeepay');
+  await pool.execute('UPDATE users SET active_provider=? WHERE id=?', [parsed.data.provider, req.user.id]);
+  await audit(req.user.id, 'provider_switched', { provider: parsed.data.provider });
+  res.json({ success: true, activeProvider: parsed.data.provider });
+});
+
+const shopeeQrisSchema = z.object({ staticQris: z.string().trim().min(20).max(1000) });
+app.put('/api/shopee/qris', requireUser, async (req, res) => {
+  const parsed = shopeeQrisSchema.safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'QRIS tidak valid atau terlalu pendek');
+  let staticQris;
+  try {
+    staticQris = validateQris(parsed.data.staticQris);
+  } catch (error) {
+    return fail(res, 400, error.message);
+  }
+  await pool.execute(
+    'INSERT INTO shopee_qris_configs (user_id, static_qris, is_valid) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE static_qris=VALUES(static_qris), is_valid=1',
+    [req.user.id, staticQris]
+  );
+  await audit(req.user.id, 'shopee_qris_updated');
+  res.json({ success: true });
+});
+
+app.delete('/api/shopee/qris', requireUser, async (req, res) => {
+  await pool.execute('DELETE FROM shopee_qris_configs WHERE user_id=?', [req.user.id]);
+  await audit(req.user.id, 'shopee_qris_deleted');
+  res.json({ success: true });
+});
+
+app.post('/api/shopee/connect/start', requireUser, async (req, res) => {
+  const parsed = z.object({
+    phoneNumber: z.string().trim().min(8).max(20),
+    password: z.string().min(1).max(100),
+    channel: z.number().int().optional()
+  }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'Nomor HP atau password tidak valid');
+
+  try {
+    const result = await requestShopeeOtp(parsed.data.phoneNumber, parsed.data.password, { channel: parsed.data.channel || 3 });
+    pendingShopeeChallenges.set(req.user.id, {
+      phoneNumber: parsed.data.phoneNumber,
+      password: parsed.data.password,
+      challenge: result.challenge,
+      client: result.client,
+      channel: result.channel,
+      expiresAt: Date.now() + 10 * 60 * 1000
+    });
+    await pool.execute(
+      "INSERT INTO shopee_accounts (user_id, phone_number, status) VALUES (?, ?, 'otp_pending') ON DUPLICATE KEY UPDATE phone_number=VALUES(phone_number), status='otp_pending', last_error=NULL",
+      [req.user.id, parsed.data.phoneNumber]
+    );
+    await audit(req.user.id, 'shopee_otp_requested');
+    return res.json({
+      success: true,
+      status: 'otp_pending',
+      channel: result.channel,
+      channels: result.channels,
+      operation: result.operation
+    });
+  } catch (error) {
+    console.error('shopee otp start error:', error.message);
+    return fail(res, 502, error.message || 'Gagal meminta OTP Shopee');
+  }
+});
+
+app.post('/api/shopee/connect/verify', requireUser, async (req, res) => {
+  const parsed = z.object({ otp: z.string().trim().min(4).max(10) }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'Kirim kode OTP sebagai teks');
+
+  const pending = pendingShopeeChallenges.get(req.user.id);
+  if (!pending || Date.now() > pending.expiresAt) {
+    pendingShopeeChallenges.delete(req.user.id);
+    return fail(res, 400, 'Sesi verifikasi telah kedaluwarsa. Silakan minta OTP kembali.');
+  }
+
+  try {
+    const verifyResult = await verifyShopeeOtp(pending.client, pending.challenge, parsed.data.otp);
+    // Complete login to get merchants & stores
+    const loginResult = await completeShopeeLogin(pending.client, verifyResult.verification);
+    pendingShopeeChallenges.delete(req.user.id);
+
+    if (loginResult.stores && loginResult.stores.length > 1) {
+      // Store pending selection in memory
+      pendingShopeeVerifications.set(req.user.id, {
+        client: loginResult.client,
+        stores: loginResult.stores,
+        merchantId: loginResult.merchantId,
+        merchantName: loginResult.merchantName,
+        phoneNumber: pending.phoneNumber,
+        expiresAt: Date.now() + 10 * 60 * 1000
+      });
+      return res.json({
+        success: true,
+        needStoreSelection: true,
+        merchantId: loginResult.merchantId,
+        merchantName: loginResult.merchantName,
+        stores: loginResult.stores
+      });
+    }
+
+    // Single store auto-selected
+    const session = loginResult.client.exportSession();
+    await pool.execute(
+      "UPDATE shopee_accounts SET phone_number=?, merchant_id=?, merchant_name=?, store_id=?, store_name=?, encrypted_session=?, status='connected', last_error=NULL WHERE user_id=?",
+      [
+        pending.phoneNumber,
+        loginResult.merchantId,
+        loginResult.merchantName,
+        loginResult.selectedStore?.storeId || '',
+        loginResult.selectedStore?.storeName || '',
+        encrypt(JSON.stringify(session)),
+        req.user.id
+      ]
+    );
+    await audit(req.user.id, 'shopee_connected', { merchantId: loginResult.merchantId, merchantName: loginResult.merchantName });
+    return res.json({
+      success: true,
+      status: 'connected',
+      merchantId: loginResult.merchantId,
+      merchantName: loginResult.merchantName,
+      storeId: loginResult.selectedStore?.storeId,
+      storeName: loginResult.selectedStore?.storeName,
+      phoneNumber: pending.phoneNumber
+    });
+  } catch (error) {
+    console.error('shopee verify error:', error.message);
+    await pool.execute("UPDATE shopee_accounts SET status='error', last_error=? WHERE user_id=?", [error.message.slice(0, 500), req.user.id]);
+    return fail(res, 502, error.message || 'Verifikasi OTP Shopee gagal');
+  }
+});
+
+app.post('/api/shopee/connect/select-store', requireUser, async (req, res) => {
+  const parsed = z.object({ storeId: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) return fail(res, 400, 'storeId diperlukan');
+
+  const pending = pendingShopeeVerifications.get(req.user.id);
+  if (!pending || Date.now() > pending.expiresAt) {
+    pendingShopeeVerifications.delete(req.user.id);
+    return fail(res, 400, 'Sesi pemilihan toko telah kedaluwarsa. Silakan ulangi koneksi.');
+  }
+
+  try {
+    await pending.client.selectStore(pending.merchantId, parsed.data.storeId);
+    const selectedStore = pending.stores.find((s) => String(s.storeId) === String(parsed.data.storeId)) || { storeId: parsed.data.storeId, storeName: '' };
+    const session = pending.client.exportSession();
+    pendingShopeeVerifications.delete(req.user.id);
+
+    await pool.execute(
+      "UPDATE shopee_accounts SET phone_number=?, merchant_id=?, merchant_name=?, store_id=?, store_name=?, encrypted_session=?, status='connected', last_error=NULL WHERE user_id=?",
+      [
+        pending.phoneNumber,
+        pending.merchantId,
+        pending.merchantName,
+        selectedStore.storeId,
+        selectedStore.storeName,
+        encrypt(JSON.stringify(session)),
+        req.user.id
+      ]
+    );
+    await audit(req.user.id, 'shopee_connected', { merchantId: pending.merchantId, storeId: selectedStore.storeId });
+    return res.json({
+      success: true,
+      status: 'connected',
+      merchantId: pending.merchantId,
+      merchantName: pending.merchantName,
+      storeId: selectedStore.storeId,
+      storeName: selectedStore.storeName,
+      phoneNumber: pending.phoneNumber
+    });
+  } catch (error) {
+    return fail(res, 502, error.message || 'Gagal memilih toko Shopee');
+  }
+});
+
+app.post('/api/shopee/connect/reset', requireUser, async (req, res) => {
+  pendingShopeeChallenges.delete(req.user.id);
+  pendingShopeeVerifications.delete(req.user.id);
+  await pool.execute("UPDATE shopee_accounts SET status='disconnected', last_error=NULL WHERE user_id=? AND status='otp_pending'", [req.user.id]);
+  return res.json({ success: true, status: 'disconnected' });
+});
+
+app.post('/api/shopee/logout', requireUser, async (req, res) => {
+  pendingShopeeChallenges.delete(req.user.id);
+  pendingShopeeVerifications.delete(req.user.id);
+  await pool.execute(
+    "UPDATE shopee_accounts SET phone_number=NULL, merchant_id=NULL, merchant_name=NULL, store_id=NULL, store_name=NULL, encrypted_session=NULL, status='disconnected', last_error=NULL WHERE user_id=?",
+    [req.user.id]
+  );
+  await pool.execute('DELETE FROM shopee_qris_configs WHERE user_id=?', [req.user.id]);
+  // If active_provider was shopeepay, fallback to gopay
+  await pool.execute("UPDATE users SET active_provider='gopay' WHERE id=? AND active_provider='shopeepay'", [req.user.id]);
+  await audit(req.user.id, 'shopee_disconnected');
+  return res.json({ success: true, status: 'disconnected' });
+});
 
 app.post('/api/gopay/connect/start', requireUser, async (req, res) => {
   const parsed = z.object({ phoneNumber: z.string().trim().min(8).max(20) }).safeParse(req.body);

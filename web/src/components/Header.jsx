@@ -98,9 +98,9 @@ export function Header({ onLogout, managementMode = false, user = null }) {
           <Activity size={18} />
           <span>Dashboard</span>
         </a>
-        <a href="/gpy-manager" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+        <a href="/koneksi-merchant" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <WalletCards size={18} />
-          <span>GoPay Management</span>
+          <span>Koneksi Merchant</span>
         </a>
         <a href="/apikey" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <KeyRound size={18} />

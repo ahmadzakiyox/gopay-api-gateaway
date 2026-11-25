@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(255) NULL,
   first_name VARCHAR(255) NULL,
   photo_url VARCHAR(512) NULL,
+  active_provider ENUM('gopay','shopeepay') NOT NULL DEFAULT 'gopay',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -43,6 +44,33 @@ CREATE TABLE IF NOT EXISTS qris_configs (
   CONSTRAINT fk_qris_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS shopee_accounts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  phone_number VARCHAR(32) NULL,
+  merchant_id VARCHAR(255) NULL,
+  merchant_name VARCHAR(255) NULL,
+  store_id VARCHAR(255) NULL,
+  store_name VARCHAR(255) NULL,
+  encrypted_session MEDIUMTEXT NULL,
+  status ENUM('disconnected','otp_pending','connected','error') NOT NULL DEFAULT 'disconnected',
+  last_error VARCHAR(500) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shopee_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS shopee_qris_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  static_qris TEXT NOT NULL,
+  merchant_name VARCHAR(255) NULL,
+  is_valid TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shopee_qris_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS api_keys (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL UNIQUE,
@@ -75,6 +103,7 @@ CREATE TABLE IF NOT EXISTS payments (
   surcharge SMALLINT UNSIGNED NOT NULL,
   payable_amount BIGINT UNSIGNED NOT NULL,
   qris_payload TEXT NOT NULL,
+  provider ENUM('gopay','shopeepay') NOT NULL DEFAULT 'gopay',
   status ENUM('pending','paid','expired','cancelled') NOT NULL DEFAULT 'pending',
   provider_transaction_id VARCHAR(128) NULL,
   provider_order_id VARCHAR(128) NULL,

@@ -27,6 +27,22 @@ async function applyMigrations(pool) {
   if (!apiKeyCols.length) {
     await pool.query("ALTER TABLE api_keys ADD COLUMN service_type ENUM('website', 'bot') NOT NULL DEFAULT 'website' AFTER user_id");
   }
+
+  // Ensure users table has active_provider column
+  const [userCols] = await pool.query(
+    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='active_provider'"
+  );
+  if (!userCols.length) {
+    await pool.query("ALTER TABLE users ADD COLUMN active_provider ENUM('gopay','shopeepay') NOT NULL DEFAULT 'gopay' AFTER photo_url");
+  }
+
+  // Ensure payments table has provider column
+  const [payProviderCols] = await pool.query(
+    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='payments' AND COLUMN_NAME='provider'"
+  );
+  if (!payProviderCols.length) {
+    await pool.query("ALTER TABLE payments ADD COLUMN provider ENUM('gopay','shopeepay') NOT NULL DEFAULT 'gopay' AFTER qris_payload");
+  }
 }
 
 module.exports = { applyMigrations };

@@ -19,7 +19,7 @@ export function Footer() {
             <div className="footer-col">
               <h4 className="col-title">Layanan</h4>
               <a href="/dashboard" className="footer-link">Dashboard</a>
-              <a href="/gpy-manager" className="footer-link">GoPay Manager</a>
+              <a href="/koneksi-merchant" className="footer-link">Koneksi Merchant</a>
               <a href="/apikey" className="footer-link">API Key</a>
               <a href="/documents" className="footer-link">Dokumentasi API</a>
             </div>

@@ -242,7 +242,7 @@ export default function DocumentsPage({ request, user }) {
             </div>
             <ol className="gpy-doc-steps">
               <li>
-                <strong>Hubungkan akun GoPay Merchant:</strong> Buka halaman <a href="/gpy-manager" className="gpy-doc-link">GoPay Management</a>, masukkan nomor HP yang terdaftar di aplikasi GoPay Merchant / GoBiz, lalu klik <strong>Kirim OTP</strong>.
+                <strong>Hubungkan akun Merchant:</strong> Buka halaman <a href="/koneksi-merchant" className="gpy-doc-link">Koneksi Merchant</a>, masukkan nomor HP yang terdaftar di GoPay Merchant atau Shopee Partner, lalu selesaikan OTP dan simpan QRIS tokomu.
               </li>
               <li>
                 <strong>Verifikasi OTP:</strong> Masukkan kode OTP yang diterima di SMS/aplikasi GoPay Merchant. Setelah berhasil, informasi Outlet, Merchant ID, dan Nama Pemilik akan tampil dengan status <strong>Terhubung</strong>.
@@ -497,7 +497,7 @@ export default function DocumentsPage({ request, user }) {
               </div>
               <ol className="gpy-doc-steps">
                 <li>
-                  <strong>Hubungkan akun GoPay Merchant:</strong> Buka halaman <a href="/gpy-manager" className="gpy-doc-link">GoPay Management</a>, masukkan nomor HP yang terdaftar di aplikasi GoPay Merchant / GoBiz, lalu klik <strong>Kirim OTP</strong>.
+                  <strong>Hubungkan akun Merchant:</strong> Buka halaman <a href="/koneksi-merchant" className="gpy-doc-link">Koneksi Merchant</a>, masukkan nomor HP yang terdaftar di GoPay Merchant atau Shopee Partner, lalu selesaikan OTP dan simpan QRIS tokomu.
                 </li>
                 <li>
                   <strong>Verifikasi OTP:</strong> Masukkan kode OTP yang diterima di SMS/aplikasi GoPay Merchant. Setelah berhasil, informasi Outlet, Merchant ID, dan Nama Pemilik akan tampil dengan status <strong>Terhubung</strong>.
