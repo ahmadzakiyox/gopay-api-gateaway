@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, Shield, FileCheck } from 'lucide-react';
+import { FileCode2, HelpCircle, Shield, FileCheck } from 'lucide-react';
 import './Header.css';
 
 export function LoginHeader() {
@@ -51,6 +51,7 @@ export function LoginHeader() {
 
           {/* Desktop Nav Links */}
           <nav className="login-nav-desktop">
+            <a href="/documents" className="login-nav-link">Dokumentasi API</a>
             <a href="/faq" className="login-nav-link">FAQ</a>
             <a href="/privacy" className="login-nav-link">Kebijakan Privasi</a>
             <a href="/terms" className="login-nav-link">Syarat & Ketentuan</a>
@@ -76,6 +77,10 @@ export function LoginHeader() {
       {/* Mobile Drawer (Same style and animation as Dashboard) */}
       {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
       <div ref={menuRef} className={`mobile-menu login-mobile-menu ${menuOpen ? 'open' : ''}`}>
+        <a href="/documents" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
+          <FileCode2 size={18} />
+          <span>Dokumentasi API</span>
+        </a>
         <a href="/faq" className="mobile-menu-item" onClick={() => setMenuOpen(false)}>
           <HelpCircle size={18} />
           <span>FAQ</span>
