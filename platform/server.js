@@ -657,7 +657,7 @@ async function createPaymentForUser(userId, input) {
       }
     }
     const qrisPayload = generateDynamicQRIS(staticQrisPayload, allocation.payableAmount);
-    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,provider,status,expires_at,reservation_until,webhook_url) VALUES (?,?,?,?,?,?,?,?,?, 'pending',?,?,?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,activeProvider,expiresAt,reservationUntil,initialWebhookUrl]);
+    await connection.execute("INSERT INTO payments (id,user_id,order_id,idempotency_key,base_amount,surcharge,payable_amount,qris_payload,provider,status,expires_at,reservation_until,webhook_url) VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?,?)", [trxId,userId,input.orderId,idempotencyKey,input.amount,allocation.surcharge,allocation.payableAmount,qrisPayload,activeProvider,expiresAt,reservationUntil,initialWebhookUrl]);
     const [[created]] = await connection.execute('SELECT * FROM payments WHERE id=? AND user_id=?', [trxId,userId]);
     await connection.commit();
     return { row: created, created: true };
