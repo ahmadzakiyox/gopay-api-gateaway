@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Ban, BookOpen, Bot, Check, Clipboard, Code2, Eye, EyeOff, FileText, Globe, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, Send, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, Webhook, X } from 'lucide-react';
+import { Activity, Ban, BookOpen, Bot, Check, Clipboard, Code2, Eye, EyeOff, FileText, Globe, Hash, ImagePlus, KeyRound, Link2, Loader2, LogOut, Play, QrCode, RefreshCw, Save, Send, ShieldCheck, Smartphone, Store, Terminal, Trash2, User, WalletCards, Webhook, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import './style.css';
 import './studio-dashboard.css';
