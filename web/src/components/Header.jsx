@@ -16,7 +16,8 @@ export function Header({ onLogout, managementMode = false, user = null }) {
       return;
     }
     // Fetch user info if not passed directly
-    fetch('/api/auth/status')
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3100' : 'https://api-qris.alternat.my.id';
+    fetch(`${apiBase}/api/auth/status`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.authenticated && data.user) {

@@ -16,28 +16,21 @@ import { LoginHeader } from './components/LoginHeader';
 import { LandingPage } from './LandingPage';
 import { Footer } from './components/Footer';
 
-const API = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3100' : '');
+const API = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3100' : 'https://api-qris.alternat.my.id');
 async function request(path, options = {}) {
-  try {
-    const response = await fetch(`${API}${path}`, {
-      credentials: 'include',
-      headers: {
-        'content-type': 'application/json',
-        ...(options.headers || {})
-      },
-      ...options
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}: Request gagal`);
-    }
-    return data;
-  } catch (err) {
-    if (err.name === 'TypeError' && err.message.includes('fetch')) {
-      throw new Error('Gagal terhubung ke API server (koneksi jaringan/CORS). Coba lagi beberapa saat.');
-    }
-    throw err;
+  const response = await fetch(`${API}${path}`, {
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}: Request gagal`);
   }
+  return data;
 }
 
 function Login() {
