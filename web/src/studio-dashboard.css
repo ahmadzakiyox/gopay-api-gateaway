@@ -106,11 +106,13 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-status-select select{border:0;outline:0;background:transparent;color:#555c65;font:inherit;font-size:10px}
 .studio-table-wrap{overflow:auto}
 .studio-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px;min-width:610px;table-layout:fixed}
-.studio-table th{padding:10px 9px;background:#f8f9fa;border-block:1px solid var(--studio-border);color:#727983;font-size:9px;font-weight:550;text-align:left;word-break:break-word}
-.studio-table td{padding:11px 9px;border-bottom:1px solid #eff0f2;color:#565d66;overflow:hidden;text-overflow:ellipsis}
-.studio-table th:nth-child(1){width:38%}
-.studio-table th:nth-child(2){width:18%}
-.studio-table th:nth-child(3){width:20%}
+.studio-table th{padding:10px 12px;background:#f8f9fa;border-block:1px solid var(--studio-border);color:#727983;font-size:9px;font-weight:550;text-align:left;word-break:break-word}
+.studio-table td{padding:11px 12px;border-bottom:1px solid #eff0f2;color:#565d66;overflow:hidden;text-overflow:ellipsis}
+.studio-table th:nth-child(1){width:44%}
+.studio-table th:nth-child(2){width:16%;text-align:center}
+.studio-table td:nth-child(2){text-align:center}
+.studio-table th:nth-child(3){width:16%;text-align:center}
+.studio-table td:nth-child(3){text-align:center}
 .studio-table th:nth-child(4){width:24%;text-align:right}
 .studio-table td:nth-child(4){text-align:right}
 .studio-table tbody tr{cursor:pointer;transition:background .12s}
