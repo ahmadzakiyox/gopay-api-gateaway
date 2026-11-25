@@ -1155,25 +1155,17 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
 
         {error && <div className="gpy-error" style={{ marginTop: 12, marginBottom: 0 }}>{error}</div>}
 
-        <div className="gpy-actions-row">
-          <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
-            {busy ? (
-              <><Loader2 size={15} className="gpy-spin" /> Mengirim Request API…</>
-            ) : (
-              <><Play size={14} /> Test Buat QRIS via API Key</>
-            )}
-          </button>
-          {payment && payment.status === 'pending' && (
-            <button
-              type="button"
-              className="gpy-btn gpy-btn-cancel"
-              onClick={cancelTestPayment}
-              disabled={cancelling}
-            >
-              {cancelling ? <><Loader2 size={14} className="gpy-spin" /> Membatalkan…</> : <><Ban size={14} /> Cancel</>}
+        {!payment && (
+          <div className="gpy-actions-row">
+            <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
+              {busy ? (
+                <><Loader2 size={15} className="gpy-spin" /> Mengirim Request API…</>
+              ) : (
+                <><Play size={14} /> Test Buat QRIS via API Key</>
+              )}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </form>
 
       {payment && (

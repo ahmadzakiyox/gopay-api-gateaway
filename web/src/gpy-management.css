@@ -1,46 +1,67 @@
 /* Tabs for Koneksi Merchant */
 .merchant-tabs {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 20px;
-  background: #ebeef2;
+  background: #f3f5f8;
+  border: 1px solid #e2e6ec;
   padding: 4px;
-  border-radius: 9px;
+  border-radius: 11px;
   width: fit-content;
+  max-width: 100%;
 }
 
 .merchant-tab-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 18px;
-  border-radius: 7px;
-  border: none;
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
   background: transparent;
-  color: #555d67;
+  color: #5b6470;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .merchant-tab-btn:hover {
   color: #17191d;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .merchant-tab-btn.is-active {
   background: #ffffff;
   color: #17191d;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-color: rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .merchant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 9999px;
   font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.merchant-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.85;
 }
 
 .merchant-badge-active {
@@ -49,8 +70,21 @@
 }
 
 .merchant-badge-inactive {
-  background: #f1f3f4;
-  color: #5f6368;
+  background: #e9ecf1;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .merchant-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .merchant-tab-btn {
+    width: 100%;
+    padding: 8px 10px;
+  }
 }
 
 /* Switch toggle switch for provider */
