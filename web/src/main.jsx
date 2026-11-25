@@ -1429,6 +1429,7 @@ function App() {
   const isPrivacy = path === '/privacy' || path === '/kebijakan-privasi';
   const isTerms = path === '/terms' || path === '/syarat-ketentuan';
   const isFaq = path === '/faq' || path === '/tanya-jawab';
+  const isDocuments = path === '/documents' || path === '/dokumentasi-api' || path === '/docs';
 
   const logout = async () => {
     try { await request('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
@@ -1439,13 +1440,13 @@ function App() {
   if (isPrivacy) return <PrivacyPage user={auth?.user} onLogout={logout} />;
   if (isTerms) return <TermsPage user={auth?.user} onLogout={logout} />;
   if (isFaq) return <FaqPage user={auth?.user} onLogout={logout} />;
+  if (isDocuments) return <DocumentsPage request={request} user={auth?.user} />;
 
   if (!auth) return <div className="loading">Memuat…</div>;
   if (!auth.authenticated) return <Login />;
 
   if (path === '/gpy-manager') return <GoPayManagement />;
   if (path === '/apikey') return <ApiKeyPage />;
-  if (path === '/documents') return <DocumentsPage request={request} user={auth.user || {}} />;
   return <StudioTransactionDashboard request={request} user={auth.user || {}} />;
 }
 

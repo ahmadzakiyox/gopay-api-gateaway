@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Ban, BookOpen, Check, Clipboard, Code2, FileText, KeyRound, Play, RefreshCw, ShieldCheck, Smartphone, Terminal, Webhook } from 'lucide-react';
 import { Header } from './components/Header';
+import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
 
 const BASE_URL = 'https://api-qris.alternat.my.id';
@@ -223,13 +224,15 @@ export default function DocumentsPage({ request, user }) {
     window.location.href = '/';
   };
 
-  return (
-    <div className="page-shell">
-      <div className="app-shell studio-shell gpy-management-shell">
-        <Header management onLogout={logout} user={user} />
-        <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
+  const isAuthenticated = Boolean(user && user.id);
 
-          <section className="gpy-panel" id="doc-setup">
+  return (
+    <div className={`page-shell ${!isAuthenticated ? 'legal-page-shell' : ''}`}>
+      {isAuthenticated ? (
+        <div className="app-shell studio-shell gpy-management-shell">
+          <Header management onLogout={logout} user={user} />
+          <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
+            <section className="gpy-panel" id="doc-setup">
             <div className="gpy-panel-head">
               <div>
                 <p className="gpy-section-label">01 / SETUP GOPAY</p>
@@ -480,6 +483,233 @@ export default function DocumentsPage({ request, user }) {
 
         </main>
       </div>
+      ) : (
+        <>
+          <LoginHeader />
+          <main className="workspace reports-workspace studio-dashboard gpy-dashboard" style={{ maxWidth: 1040, margin: '24px auto', padding: '0 20px' }}>
+            <section className="gpy-panel" id="doc-setup">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">01 / SETUP GOPAY</p>
+                  <h3>Login Akun GoPay Merchant & QRIS</h3>
+                </div>
+                <Smartphone size={18} />
+              </div>
+              <ol className="gpy-doc-steps">
+                <li>
+                  <strong>Hubungkan akun GoPay Merchant:</strong> Buka halaman <a href="/gpy-manager" className="gpy-doc-link">GoPay Management</a>, masukkan nomor HP yang terdaftar di aplikasi GoPay Merchant / GoBiz, lalu klik <strong>Kirim OTP</strong>.
+                </li>
+                <li>
+                  <strong>Verifikasi OTP:</strong> Masukkan kode OTP yang diterima di SMS/aplikasi GoPay Merchant. Setelah berhasil, informasi Outlet, Merchant ID, dan Nama Pemilik akan tampil dengan status <strong>Terhubung</strong>.
+                </li>
+                <li>
+                  <strong>Unggah QRIS Statis:</strong> Pada panel <strong>QRIS Configuration</strong> di halaman yang sama, unggah gambar QRIS statis milik merchant kamu. Sistem akan mendecode payload QRIS secara otomatis untuk dijadikan dasar QRIS dinamis.
+                </li>
+              </ol>
+            </section>
+
+            <section className="gpy-panel" id="doc-auth">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">02 / OTENTIKASI</p>
+                  <h3>Header API Key & Keamanan</h3>
+                </div>
+                <KeyRound size={18} />
+              </div>
+              <p className="gpy-doc-desc">
+                Setiap request ke endpoint API Gateway <strong>wajib</strong> menyertakan header <code>x-api-key</code>. Kunci ini dapat dibuat dan dikelola di halaman <a href="/apikey" className="gpy-doc-link">Api Key</a>.
+              </p>
+              <div className="gpy-doc-table">
+                <div className="gpy-doc-table-header">
+                  <span>Nama Header</span>
+                  <span>Tipe</span>
+                  <span>Keterangan</span>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>x-api-key</code>
+                  <span className="gpy-doc-req">Wajib</span>
+                  <p>Kunci API aktif kamu, diawali dengan <code>gpg_live_...</code></p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>Content-Type</code>
+                  <span className="gpy-doc-req">Wajib</span>
+                  <p>Wajib bernilai <code>application/json</code> untuk semua request bertipe POST.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="gpy-panel" id="doc-flow">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">03 / PILIHAN INTEGRASI</p>
+                  <h3>Webhook vs Polling</h3>
+                </div>
+                <Webhook size={18} />
+              </div>
+              <div className="gpy-doc-grid-2">
+                <div className="gpy-doc-mode-card">
+                  <div className="gpy-doc-mode-tag tag-web">Website / Aplikasi</div>
+                  <h4>Mode Webhook (Rekomendasi)</h4>
+                  <p>Cocok untuk website e-commerce, topup game, atau SaaS. Daftarkan URL callback HTTPS kamu di menu <a href="/apikey" className="gpy-doc-link">Api Key</a> atau kirimkan parameter <code>webhookUrl</code> saat create payment.</p>
+                  <p>Alternate Pay akan mengirim HTTP POST berformat JSON seketika setelah mutasi terdeteksi dan dana masuk.</p>
+                </div>
+                <div className="gpy-doc-mode-card">
+                  <div className="gpy-doc-mode-tag tag-bot">Bot Telegram / WhatsApp</div>
+                  <h4>Mode Polling</h4>
+                  <p>Cocok untuk bot yang berjalan tanpa public IP / domain HTTPS terbuka. Bot kamu cukup memanggil <code>GET /api/v1/payments/:trxId</code> secara berkala (misal tiap 2-3 detik) hingga status berubah menjadi <code>paid</code>.</p>
+                  <p>Tidak perlu setup webhook URL, port forwarding, atau SSL certificate.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="gpy-panel" id="doc-create">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">04 / ENDPOINT</p>
+                  <h3>1. Buat Transaksi Baru (Create Payment)</h3>
+                </div>
+                <Code2 size={18} />
+              </div>
+              <div className="gpy-doc-endpoint">
+                <span className="gpy-method post">POST</span>
+                <span className="gpy-endpoint-url">{BASE_URL}/api/v1/payments</span>
+              </div>
+              <div className="gpy-doc-table">
+                <div className="gpy-doc-table-header">
+                  <span>Parameter Body</span>
+                  <span>Tipe</span>
+                  <span>Keterangan</span>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>orderId</code>
+                  <span className="gpy-doc-req">Wajib • String</span>
+                  <p>ID referensi unik dari sistem kamu (misal: <code>INV-20261124-001</code>). Maksimal 100 karakter.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>amount</code>
+                  <span className="gpy-doc-req">Wajib • Number</span>
+                  <p>Nominal pembayaran dalam Rupiah (integer, tanpa desimal). Minimal <code>Rp 1.000</code>.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>webhookUrl</code>
+                  <span className="gpy-doc-opt">Opsional • String</span>
+                  <p>URL callback spesifik untuk transaksi ini. Jika diisi, akan menimpa URL Webhook global akun kamu. Wajib HTTPS di production.</p>
+                </div>
+              </div>
+
+              <CodeBlock id="create-req" title="Contoh Payload Request JSON" code={CREATE_REQ_JSON} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="create-curl" title="Contoh Perintah cURL" code={CREATE_CURL} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="create-res" title="Contoh Response Berhasil (201 Created)" code={CREATE_RES_JSON} copiedId={copiedId} onCopy={copyText} />
+            </section>
+
+            <section className="gpy-panel" id="doc-check">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">05 / ENDPOINT</p>
+                  <h3>2. Cek Status Transaksi (Check Status)</h3>
+                </div>
+                <RefreshCw size={18} />
+              </div>
+              <div className="gpy-doc-endpoint">
+                <span className="gpy-method get">GET</span>
+                <span className="gpy-endpoint-url">{BASE_URL}/api/v1/payments/:trxId</span>
+              </div>
+              <CodeBlock id="check-curl" title="Contoh Perintah cURL" code={CHECK_CURL} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="check-res" title="Contoh Response Berhasil (200 OK)" code={CHECK_RES_JSON} copiedId={copiedId} onCopy={copyText} />
+            </section>
+
+            <section className="gpy-panel" id="doc-cancel">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">06 / ENDPOINT</p>
+                  <h3>3. Batalkan Transaksi (Cancel Payment)</h3>
+                </div>
+                <Ban size={18} />
+              </div>
+              <div className="gpy-doc-endpoint">
+                <span className="gpy-method post">POST</span>
+                <span className="gpy-endpoint-url">{BASE_URL}/api/v1/payments/:trxId/cancel</span>
+              </div>
+              <CodeBlock id="cancel-curl" title="Contoh Perintah cURL" code={CANCEL_CURL} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="cancel-res" title="Contoh Response Berhasil (200 OK)" code={CANCEL_RES_JSON} copiedId={copiedId} onCopy={copyText} />
+            </section>
+
+            <section className="gpy-panel" id="doc-webhook">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">07 / CALLBACK</p>
+                  <h3>Spesifikasi Payload Webhook</h3>
+                </div>
+                <ShieldCheck size={18} />
+              </div>
+              <div className="gpy-doc-table">
+                <div className="gpy-doc-table-header">
+                  <span>Header Webhook</span>
+                  <span>Keterangan</span>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>x-gopay-signature</code>
+                  <span className="gpy-doc-req">Header</span>
+                  <p>Signature HMAC SHA-256 dari payload body yang dihitung menggunakan Webhook Secret kamu.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>Content-Type</code>
+                  <span className="gpy-doc-opt">Header</span>
+                  <p><code>application/json</code></p>
+                </div>
+              </div>
+
+              <CodeBlock id="wh-payload" title="Contoh Payload Body Dikirim ke Server Kamu" code={WEBHOOK_PAYLOAD_JSON} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="wh-verify" title="Contoh Verifikasi Signature (Node.js)" code={WEBHOOK_VERIFY_JS} copiedId={copiedId} onCopy={copyText} />
+            </section>
+
+            <section className="gpy-panel" id="doc-error">
+              <div className="gpy-panel-head">
+                <div>
+                  <p className="gpy-section-label">08 / ERROR HANDLING</p>
+                  <h3>Status HTTP & Kode Error</h3>
+                </div>
+                <Terminal size={18} />
+              </div>
+              <div className="gpy-doc-table">
+                <div className="gpy-doc-table-header">
+                  <span>Status HTTP</span>
+                  <span>Tipe</span>
+                  <span>Keterangan</span>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>400</code>
+                  <span className="gpy-doc-opt">Bad Request</span>
+                  <p>Payload JSON tidak valid, field wajib hilang, atau validasi format gagal.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>401</code>
+                  <span className="gpy-doc-opt">Unauthorized</span>
+                  <p>Header <code>x-api-key</code> kosong, salah, atau sudah di-regenerate.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>404</code>
+                  <span className="gpy-doc-opt">Not Found</span>
+                  <p>Transaksi dengan <code>trxId</code> tersebut tidak ditemukan.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>409</code>
+                  <span className="gpy-doc-opt">Conflict</span>
+                  <p>Akun GoPay belum terhubung, QRIS statis belum disimpan, slot nominal unik penuh, atau transaksi sudah <code>paid</code> / <code>expired</code> saat dicancel.</p>
+                </div>
+                <div className="gpy-doc-param">
+                  <code>502</code>
+                  <span className="gpy-doc-opt">Bad Gateway</span>
+                  <p>Gagal berkomunikasi sementara dengan layanan GoPay.</p>
+                </div>
+              </div>
+
+              <CodeBlock id="error-json-pub" title="Format Output Error JSON" code={ERROR_RES_JSON} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="node-example-pub" title="Contoh Implementasi (Node.js / JavaScript)" code={NODE_EXAMPLE} copiedId={copiedId} onCopy={copyText} />
+            </section>
+          </main>
+        </>
+      )}
       <Footer />
     </div>
   );
