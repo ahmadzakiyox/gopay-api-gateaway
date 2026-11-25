@@ -614,8 +614,8 @@ export default function DocumentsPage({ request, user }) {
                 <span className="gpy-method get">GET</span>
                 <span className="gpy-endpoint-url">{BASE_URL}/api/v1/payments/:trxId</span>
               </div>
-              <CodeBlock id="check-curl" title="Contoh Perintah cURL" code={CHECK_CURL} copiedId={copiedId} onCopy={copyText} />
-              <CodeBlock id="check-res" title="Contoh Response Berhasil (200 OK)" code={CHECK_RES_JSON} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="check-curl" title="Contoh Perintah cURL" code={STATUS_CURL} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="check-res" title="Contoh Response Berhasil (200 OK)" code={STATUS_RESPONSES.paid} copiedId={copiedId} onCopy={copyText} />
             </section>
 
             <section className="gpy-panel" id="doc-cancel">
@@ -660,7 +660,7 @@ export default function DocumentsPage({ request, user }) {
               </div>
 
               <CodeBlock id="wh-payload" title="Contoh Payload Body Dikirim ke Server Kamu" code={WEBHOOK_PAYLOAD_JSON} copiedId={copiedId} onCopy={copyText} />
-              <CodeBlock id="wh-verify" title="Contoh Verifikasi Signature (Node.js)" code={WEBHOOK_VERIFY_JS} copiedId={copiedId} onCopy={copyText} />
+              <CodeBlock id="wh-verify" title="Contoh Verifikasi Signature (Node.js)" code={WEBHOOK_VERIFY_NODE} copiedId={copiedId} onCopy={copyText} />
             </section>
 
             <section className="gpy-panel" id="doc-error">
