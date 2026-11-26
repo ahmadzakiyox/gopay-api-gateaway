@@ -79,34 +79,32 @@ export function Header({ onLogout, managementMode = false, user = null }) {
     { href: '/documents', label: 'Doc', icon: FileText, active: path.startsWith('/documents') }
   ];
   const headerLinks = [
-    { href: '/terms', label: 'Syarat & Ketentuan', active: path.startsWith('/terms') },
+    { href: '/faq', label: 'FAQ', active: path.startsWith('/faq') },
     { href: '/privacy', label: 'Kebijakan Privasi', active: path.startsWith('/privacy') },
-    { href: '/faq', label: 'FAQ', active: path.startsWith('/faq') }
+    { href: '/terms', label: 'Syarat & Ketentuan', active: path.startsWith('/terms') },
+    { href: '/about', label: 'Tentang Kami', active: path.startsWith('/about') || path.startsWith('/tentang-kami') }
   ];
 
   return (
     <>
       <header className="desktop-top-header">
-        <div className="desktop-top-left">
-          <a className="desktop-top-brand" href="/dashboard">
-            <img src="/logo.png" alt="Alternate Pay Logo" className="brand-logo" />
-            <span className="brand-text">
-              Alternate <b>Pay</b>
-            </span>
-          </a>
-          <span className="desktop-top-divider" aria-hidden="true" />
-          <nav className="desktop-top-links" aria-label="Informasi dan legal">
-            {headerLinks.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`desktop-top-link${item.active ? ' active' : ''}`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        </div>
+        <a className="desktop-top-brand" href="/dashboard">
+          <img src="/logo.png" alt="Alternate Pay Logo" className="brand-logo" />
+          <span className="brand-text">
+            Alternate <b>Pay</b>
+          </span>
+        </a>
+        <nav className="desktop-top-links" aria-label="Informasi dan legal">
+          {headerLinks.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`desktop-top-link${item.active ? ' active' : ''}`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
       <aside className={`workspace-nav header-nav${sidebarCollapsed ? ' is-collapsed' : ''}`}>
         <a className="brand" href="/dashboard">

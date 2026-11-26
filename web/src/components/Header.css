@@ -187,7 +187,8 @@
   .desktop-top-links {
     display: flex !important;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    margin-left: auto;
   }
 
   .desktop-top-link {
