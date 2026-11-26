@@ -10,8 +10,8 @@
 /* Desktop with sidebar */
 @media (min-width: 769px) {
   .page-shell:has(> .app-shell) > .foodnoms-footer {
-    margin-left: 220px;
-    width: calc(100% - 220px);
+    margin-left: 236px;
+    width: calc(100% - 236px);
   }
 }
 

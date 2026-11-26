@@ -33,7 +33,7 @@
 /* Match desktop layout: if sidebar header is present, adjust offset */
 @media (min-width: 769px) {
   .legal-page-shell:has(> .workspace-nav) .legal-page {
-    margin-left: 220px;
+    margin-left: 236px;
   }
 }
 

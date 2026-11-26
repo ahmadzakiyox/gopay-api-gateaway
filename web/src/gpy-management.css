@@ -163,6 +163,41 @@
   }
 }
 
+@media (min-width: 769px) {
+  .gpy-management-shell {
+    margin-left: 236px;
+  }
+
+  .gpy-dashboard {
+    max-width: 1260px;
+    padding: 32px 36px 56px;
+  }
+
+  .gpy-panel {
+    border-radius: 8px;
+    padding: 24px 26px;
+    margin-bottom: 22px;
+  }
+
+  .gpy-panel-head h3 {
+    font-size: 16px;
+  }
+
+  .gpy-desc {
+    font-size: 13px;
+  }
+
+  .gpy-grid-two {
+    gap: 22px;
+    margin-bottom: 22px;
+  }
+
+  .gpy-status-row {
+    padding: 13px 0;
+    font-size: 13px;
+  }
+}
+
 .gpy-dashboard {
   min-width: 0;
   width: 100%;
