@@ -18,10 +18,39 @@ import { LoginHeader } from './components/LoginHeader';
 import { Footer } from './components/Footer';
 import './landing.css';
 
+const SIM_SCENARIOS = [
+  {
+    orderId: 'INV-904',
+    amount: 50000,
+    amountFormatted: 'Rp 50.000',
+    surcharge: 42,
+    surchargeFormatted: '+Rp 42',
+    total: 50042,
+    totalFormatted: 'Rp 50.042',
+    issuer: 'GOPAY',
+    latency: '118ms'
+  },
+  {
+    orderId: 'INV-905',
+    amount: 125000,
+    amountFormatted: 'Rp 125.000',
+    surcharge: 17,
+    surchargeFormatted: '+Rp 17',
+    total: 125017,
+    totalFormatted: 'Rp 125.017',
+    issuer: 'SHOPEEPAY',
+    latency: '94ms'
+  }
+];
+
 export function LandingPage({ onLogin, loading, error }) {
   // Rotating headline word animation
   const words = ['Bisnis Web', 'Bot Telegram', 'Layanan Otomatis', 'Produk Digital'];
   const [wordIndex, setWordIndex] = useState(0);
+
+  // Live API transaction simulation state: 0=request, 1=pending, 2=paid, 3=resetting
+  const [scenarioIdx, setScenarioIdx] = useState(0);
+  const [simPhase, setSimPhase] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -29,6 +58,36 @@ export function LandingPage({ onLogin, loading, error }) {
     }, 2800);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      setSimPhase(2);
+      return;
+    }
+
+    let t1, t2, t3, t4;
+    const runCycle = () => {
+      setSimPhase(0);
+      t1 = setTimeout(() => setSimPhase(1), 1500);
+      t2 = setTimeout(() => setSimPhase(2), 3100);
+      t3 = setTimeout(() => setSimPhase(3), 6400);
+      t4 = setTimeout(() => {
+        setScenarioIdx((prev) => (prev + 1) % SIM_SCENARIOS.length);
+        runCycle();
+      }, 6800);
+    };
+
+    runCycle();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, []);
+
+  const sim = SIM_SCENARIOS[scenarioIdx];
 
   // Scroll reveal observer (IntersectionObserver)
   useEffect(() => {
@@ -111,51 +170,104 @@ export function LandingPage({ onLogin, loading, error }) {
                   <div className="preview-mode-tag">PRODUCTION READY</div>
                 </div>
 
-                <div className="preview-content-grid">
-                  {/* Left: Code Box */}
+                <div className={`preview-content-grid ${simPhase === 3 ? 'is-transitioning' : ''}`}>
+                  {/* Left: Live Code Execution Box */}
                   <div className="preview-code-box">
-                    <div className="preview-box-label">
-                      <Code2 size={13} />
-                      <span>CREATE TRANSACTION (POST)</span>
+                    <div className="preview-box-label-row">
+                      <div className="preview-box-label">
+                        <Code2 size={13} />
+                        <span>CREATE TRANSACTION (POST)</span>
+                      </div>
+                      <span className={`preview-exec-pill phase-${simPhase}`}>
+                        {simPhase === 0 ? 'SENDING' : simPhase === 1 ? `201 · ${sim.latency}` : simPhase === 2 ? '200 OK · PAID' : 'SYNCING'}
+                      </span>
                     </div>
-                    <pre className="preview-code-block">
-                      <code>{`const res = await fetch('/api/v1/payments', {
-  method: 'POST',
-  headers: {
-    'X-API-Key': 'gpg_live_••••••'
-  },
-  body: JSON.stringify({
-    orderId: 'INV-904',
-    amount: 50000,
-    webhookUrl: 'https://api.toko.com/cb'
-  })
-});`}</code>
-                    </pre>
+
+                    <div className="preview-code-stack">
+                      <pre className="preview-code-block" key={scenarioIdx} aria-label="Simulasi request dan response API">
+                        <code>
+                          <span className="code-line" style={{ animationDelay: '0ms' }}>
+                            <span className="tok-kw">const</span> res = <span className="tok-kw">await</span> <span className="tok-fn">fetch</span>(<span className="tok-str">'/api/v1/payments'</span>, {'{'}
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '70ms' }}>
+                            {'  '}method: <span className="tok-str">'POST'</span>,
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '140ms' }}>
+                            {'  '}headers: {'{ '}
+                            <span className="tok-str">'X-API-Key'</span>: <span className="tok-str">'gpg_live_••••••'</span>
+                            {' }'},
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '210ms' }}>
+                            {'  '}body: <span className="tok-fn">JSON.stringify</span>({'{'}
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '280ms' }}>
+                            {'    '}orderId: <span className="tok-str">'{sim.orderId}'</span>,
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '350ms' }}>
+                            {'    '}amount: <span className="tok-num">{sim.amount}</span>,
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '420ms' }}>
+                            {'    '}webhookUrl: <span className="tok-str">'https://api.toko.com/cb'</span>
+                          </span>
+                          <span className="code-line" style={{ animationDelay: '490ms' }}>
+                            {'  }'});
+                          </span>
+                        </code>
+                      </pre>
+
+                      <div className={`preview-output-block ${simPhase >= 1 ? 'is-visible' : ''} ${simPhase === 2 ? 'is-paid' : ''}`}>
+                        <div className="preview-output-header">
+                          <span className="output-prompt">&gt;</span>
+                          <span className="output-endpoint">
+                            {simPhase === 1 ? '201 Created — Menunggu mutasi QRIS…' : 'Webhook Delivered — Settlement Sukses'}
+                          </span>
+                        </div>
+                        <pre className="preview-output-json">
+                          <code>
+                            {`{ "orderId": "${sim.orderId}", "total": ${sim.total}, `}
+                            <span className={simPhase === 2 ? 'tok-paid' : 'tok-pending'}>
+                              {`"status": "${simPhase === 2 ? 'PAID' : 'PENDING'}"`}
+                            </span>
+                            {simPhase === 2 ? `, "issuer": "${sim.issuer}" }` : ' }'}
+                          </code>
+                        </pre>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Right: Payment Simulation Card */}
                   <div className="preview-card-box">
                     <div className="preview-box-label">
                       <Activity size={13} />
-                      <span>MUTASI & SETTLEMENT OTOMATIS</span>
+                      <span>MUTASI &amp; SETTLEMENT OTOMATIS</span>
                     </div>
                     <div className="preview-sim-body">
                       <div className="preview-amount-row">
                         <span>Nominal Dasar</span>
-                        <strong>Rp 50.000</strong>
+                        <strong>{sim.amountFormatted}</strong>
                       </div>
-                      <div className="preview-amount-row surcharge-row">
+                      <div className={`preview-amount-row surcharge-row ${simPhase >= 1 ? 'is-ready' : 'is-waiting'}`}>
                         <span>Kode Unik (Surcharge)</span>
-                        <strong className="text-orange">+Rp 42</strong>
+                        <strong className="text-orange">
+                          {simPhase >= 1 ? sim.surchargeFormatted : 'Menunggu…'}
+                        </strong>
                       </div>
                       <div className="preview-divider" />
-                      <div className="preview-amount-row total-row">
+                      <div className={`preview-amount-row total-row ${simPhase >= 1 ? 'is-ready' : 'is-waiting'}`}>
                         <span>Total Bayar Pelanggan</span>
-                        <strong className="text-green">Rp 50.042</strong>
+                        <strong className="text-green">
+                          {simPhase >= 1 ? sim.totalFormatted : '—'}
+                        </strong>
                       </div>
-                      <div className="preview-status-badge">
+                      <div className={`preview-status-badge ${simPhase === 0 ? 'is-sending' : simPhase === 1 ? 'is-pending' : 'is-paid'}`}>
                         <span className="status-ping" />
-                        <span>Status: PAID • Webhook Sent (200 OK)</span>
+                        <span>
+                          {simPhase === 0
+                            ? 'Mengirim request transaksi…'
+                            : simPhase === 1
+                              ? `PENDING • Menunggu scan QRIS`
+                              : `Status: PAID • ${sim.issuer} • Webhook (200 OK)`}
+                        </span>
                       </div>
                     </div>
                   </div>
