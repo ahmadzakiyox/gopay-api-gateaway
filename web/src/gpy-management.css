@@ -165,7 +165,8 @@
 
 @media (min-width: 769px) {
   .gpy-management-shell {
-    min-height: 560px;
+    min-height: 0;
+    flex: 1 0 auto;
     margin-left: 0;
     width: 100%;
     display: grid;
