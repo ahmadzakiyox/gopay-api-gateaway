@@ -180,33 +180,39 @@
     grid-template-columns: 68px minmax(0, 1fr);
   }
 
-  .gpy-dashboard {
+  .gpy-management-shell .gpy-dashboard {
     max-width: 1260px;
     padding: 28px 36px 36px;
   }
 
-  .gpy-panel {
+  .gpy-management-shell .gpy-panel {
     border-radius: 8px;
     padding: 24px 26px;
     margin-bottom: 22px;
   }
 
-  .gpy-panel-head h3 {
+  .gpy-management-shell .gpy-panel-head h3 {
     font-size: 16px;
   }
 
-  .gpy-desc {
+  .gpy-management-shell .gpy-desc {
     font-size: 13px;
   }
 
-  .gpy-grid-two {
+  .gpy-management-shell .gpy-grid-two {
     gap: 22px;
     margin-bottom: 22px;
   }
 
-  .gpy-status-row {
+  .gpy-management-shell .gpy-status-row {
     padding: 13px 0;
     font-size: 13px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .gpy-management-shell .gpy-dashboard {
+    padding: 24px 24px 32px;
   }
 }
 
