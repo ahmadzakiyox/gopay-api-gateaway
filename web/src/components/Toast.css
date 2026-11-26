@@ -36,17 +36,33 @@
   justify-content: space-around;
   gap: 10px;
   pointer-events: auto;
-  animation: apToastSlideIn 0.22s ease-out;
+  animation: apToastIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes apToastSlideIn {
+.ap-toast-card.is-closing {
+  pointer-events: none;
+  animation: apToastOut 0.22s ease-in forwards;
+}
+
+@keyframes apToastIn {
   from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.98);
+    transform: translateY(-14px) scale(0.96);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes apToastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
   }
 }
 

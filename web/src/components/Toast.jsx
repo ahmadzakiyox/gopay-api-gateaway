@@ -10,7 +10,7 @@ import './Toast.css';
 let nextToastId = 1;
 const listeners = new Set();
 
-function emitToast(type, title, message, duration = 4500) {
+function emitToast(type, title, message, duration = 3000) {
   const id = nextToastId++;
   const payload = { id, type, title, message, duration };
   listeners.forEach((fn) => fn(payload));
@@ -20,11 +20,11 @@ function emitToast(type, title, message, duration = 4500) {
 export const toast = {
   success(message, title = 'Berhasil') {
     if (!message) return null;
-    return emitToast('success', title, message);
+    return emitToast('success', title, message, 3000);
   },
   error(message, title = 'Gagal') {
     if (!message) return null;
-    return emitToast('error', title, message, 5500);
+    return emitToast('error', title, message, 3000);
   }
 };
 
@@ -50,7 +50,7 @@ function ToastCard({ item, onClose }) {
 
   return (
     <div
-      className={`ap-toast-card ${isError ? 'is-error' : 'is-success'}`}
+      className={`ap-toast-card ${isError ? 'is-error' : 'is-success'}${item.closing ? ' is-closing' : ''}`}
       role={isError ? 'alert' : 'status'}
       aria-live={isError ? 'assertive' : 'polite'}
     >
@@ -122,11 +122,18 @@ function ToastCard({ item, onClose }) {
 export function ToastContainer() {
   const [items, setItems] = useState([]);
 
+  const dismiss = (id) => {
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, closing: true } : x)));
+    window.setTimeout(() => {
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    }, 220);
+  };
+
   useEffect(() => {
     const onToast = (payload) => {
-      setItems((prev) => [...prev.slice(-3), payload]);
+      setItems((prev) => [...prev.slice(-3), { ...payload, closing: false }]);
       window.setTimeout(() => {
-        setItems((prev) => prev.filter((x) => x.id !== payload.id));
+        dismiss(payload.id);
       }, payload.duration);
     };
     listeners.add(onToast);
@@ -141,7 +148,7 @@ export function ToastContainer() {
         <ToastCard
           key={item.id}
           item={item}
-          onClose={(id) => setItems((prev) => prev.filter((x) => x.id !== id))}
+          onClose={dismiss}
         />
       ))}
     </div>
