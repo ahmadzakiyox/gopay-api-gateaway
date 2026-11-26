@@ -57,6 +57,14 @@ export function Header({ onLogout, managementMode = false, user = null }) {
     <span className="nav-profile-avatar">{avatarLetter}</span>
   );
 
+  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  const navItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: Activity, active: path === '/dashboard' || path === '/' },
+    { href: '/koneksi-merchant', label: 'Koneksi Merchant', icon: WalletCards, active: path.startsWith('/koneksi-merchant') },
+    { href: '/apikey', label: 'Api Key', icon: KeyRound, active: path.startsWith('/apikey') || path.startsWith('/api-key') },
+    { href: '/documents', label: 'Doc', icon: FileText, active: path.startsWith('/documents') }
+  ];
+
   return (
     <>
       <aside className="workspace-nav header-nav">
@@ -66,6 +74,17 @@ export function Header({ onLogout, managementMode = false, user = null }) {
             Alternate <b>Pay</b>
           </span>
         </a>
+        <nav className="desktop-nav" aria-label="Navigasi utama">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <a key={item.href} href={item.href} className={`desktop-nav-link${item.active ? ' active' : ''}`}>
+                <Icon size={17} />
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
         <button ref={buttonRef} className={`hamburger-btn ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>
           <div className="hamburger-icon">
             <span className="bar bar1"></span>
