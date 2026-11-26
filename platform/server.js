@@ -353,7 +353,7 @@ app.get('/api/auth/telegram/start', (req, res) => {
 
 app.get('/api/auth/telegram/callback', async (req, res) => {
   const state = oauthStates.get(req.query.state);
-  if (!state || state.expiresAt < Date.now()) return res.status(400).send('Telegram login expired. Silakan ulangi.');
+  if (!state || state.expiresAt < Date.now()) return res.redirect(`${webOrigin}/?login=error&reason=${encodeURIComponent('Sesi login Telegram kedaluwarsa. Silakan ulangi.')}`);
   oauthStates.delete(req.query.state);
   try {
     const token = await axios.post('https://oauth.telegram.org/token', new URLSearchParams({ grant_type: 'authorization_code', code: req.query.code, client_id: process.env.TELEGRAM_CLIENT_ID, client_secret: process.env.TELEGRAM_CLIENT_SECRET, redirect_uri: process.env.TELEGRAM_REDIRECT_URI, code_verifier: state.verifier }).toString(), { headers: { 'content-type': 'application/x-www-form-urlencoded' } });
@@ -368,8 +368,8 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
     await pool.execute('INSERT INTO web_sessions (id, user_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))', [sid, userId]);
     await audit(userId, 'telegram_login');
     sessionCookie(res, sid, 24 * 60 * 60 * 1000);
-    res.redirect(`${webOrigin}/dashboard`);
-  } catch (error) { console.error('telegram callback:', error.response?.data || error.message); res.status(502).send('Login Telegram gagal. Silakan coba lagi.'); }
+    res.redirect(`${webOrigin}/dashboard?login=success`);
+  } catch (error) { console.error('telegram callback:', error.response?.data || error.message); res.redirect(`${webOrigin}/?login=error&reason=${encodeURIComponent('Login Telegram gagal. Silakan coba lagi.')}`); }
 });
 
 app.get('/api/auth/status', async (req, res) => { try { const user = await userFromRequest(req); res.json({ success: true, authenticated: Boolean(user), user: user ? { id: user.id, telegramId: user.telegram_id, username: user.username, firstName: user.first_name, photoUrl: user.photo_url || null } : null }); } catch { fail(res, 500, 'Gagal membaca status login'); } });

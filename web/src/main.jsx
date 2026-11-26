@@ -237,8 +237,6 @@ function QrisCard({ configured, onSaved, endpoint = '/api/qris', title = 'QRIS s
           </button>
         </div>
       )}
-      {error && <p className="gpy-warning-text" role="alert">{error}</p>}
-      {notice && <p className="gpy-notice-inline" role="status"><Check size={13} /> {notice}</p>}
     </section>
   );
 }
@@ -516,9 +514,6 @@ function MerchantConnection() {
       <div className="app-shell studio-shell gpy-management-shell">
         <Header management onLogout={logout} user={data.user} />
         <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
-          {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
-          {error && <div className="gpy-error">{error}</div>}
-
           <div className="merchant-tabs">
             <button
               type="button"
@@ -1153,8 +1148,6 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
           <pre className="gpy-code-pre"><code>{curlSample}</code></pre>
         </div>
 
-        {error && <div className="gpy-error" style={{ marginTop: 12, marginBottom: 0 }}>{error}</div>}
-
         {!payment && (
           <div className="gpy-actions-row">
             <button className="gpy-btn gpy-btn-primary gpy-btn-block" disabled={busy || !Number(amount)}>
@@ -1464,9 +1457,6 @@ function ApiKeyPage() {
       <div className="app-shell studio-shell gpy-management-shell">
         <Header management onLogout={logout} user={data.user} />
         <main className="workspace reports-workspace studio-dashboard gpy-dashboard">
-          {notice && <div className="gpy-notice"><Check size={15} /> {notice}</div>}
-          {error && <div className="gpy-error">{error}</div>}
-
           <section className="gpy-panel" id="api-key">
             <div className="gpy-panel-head">
               <div>
@@ -1792,7 +1782,23 @@ function ApiKeyPage() {
 
 function App() {
   const [auth, setAuth] = useState(null);
-  useEffect(() => { request('/api/auth/status').then(setAuth).catch(() => setAuth({ authenticated: false })); }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const loginState = params.get('login');
+    const loginReason = params.get('reason');
+    if (loginState === 'success') {
+      toast.success('Login Telegram berhasil. Selamat datang!');
+    } else if (loginState === 'error') {
+      toast.error(loginReason || 'Login Telegram gagal. Silakan coba lagi.');
+    }
+    if (loginState) {
+      params.delete('login');
+      params.delete('reason');
+      const qs = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    }
+    request('/api/auth/status').then(setAuth).catch(() => setAuth({ authenticated: false }));
+  }, []);
 
   const path = window.location.pathname.replace(/\/$/, '');
   const isAbout = path === '/about' || path === '/tentang-kami';

@@ -95,10 +95,6 @@ export function LandingPage({ onLogin, loading, error }) {
               </button>
             </div>
 
-            {error && (
-              <p className="landing-login-error" role="alert">{error}</p>
-            )}
-
             {/* LIVE PREVIEW INTERACTIVE SIMULATION */}
             <div className="hero-preview-container" data-reveal>
               <div className="preview-window">
