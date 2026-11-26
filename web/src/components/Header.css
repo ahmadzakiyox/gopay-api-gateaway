@@ -54,7 +54,7 @@
   color: var(--green);
 }
 
-.login-hamburger-btn {
+.login-header .login-hamburger-btn {
   display: none;
 }
 
@@ -62,7 +62,7 @@
   .login-nav-desktop {
     display: none;
   }
-  .login-hamburger-btn {
+  .login-header .login-hamburger-btn {
     display: flex;
   }
   .login-header + .mobile-menu-backdrop {
