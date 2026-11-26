@@ -265,6 +265,8 @@ function MerchantConnection() {
   // Common UI state
   const { notice, setNotice, error, setError } = useToastState();
   const [busy, setBusy] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState(null); // 'gopay' | 'shopeepay' | null
+  const [switchingProvider, setSwitchingProvider] = useState(false);
 
   const load = async () => {
     try {
@@ -282,18 +284,28 @@ function MerchantConnection() {
 
   useEffect(() => { load(); }, []);
 
-  const switchProvider = async (targetProvider) => {
+  const requestSwitchProvider = (targetProvider) => {
     if (data?.activeProvider === targetProvider) return;
+    setSwitchTarget(targetProvider);
+  };
+
+  const confirmSwitchProvider = async () => {
+    if (!switchTarget) return;
+    const targetProvider = switchTarget;
+    setSwitchingProvider(true);
     setBusy(true);
     setError('');
     setNotice('');
     try {
       await request('/api/merchant/provider', { method: 'POST', body: JSON.stringify({ provider: targetProvider }) });
       setNotice(`Provider aktif berhasil diubah ke ${targetProvider === 'shopeepay' ? 'ShopeePay' : 'GoPay'}.`);
+      setSwitchTarget(null);
       await load();
     } catch (e) {
       setError(e.message);
+      setSwitchTarget(null);
     } finally {
+      setSwitchingProvider(false);
       setBusy(false);
     }
   };
@@ -558,7 +570,7 @@ function MerchantConnection() {
                   <button
                     type="button"
                     className={`toggle-switch-btn ${isGopayActive ? 'is-on' : ''}`}
-                    onClick={() => switchProvider(isGopayActive ? 'shopeepay' : 'gopay')}
+                    onClick={() => requestSwitchProvider(isGopayActive ? 'shopeepay' : 'gopay')}
                     disabled={busy || !isGopayConnected}
                     title={!isGopayConnected ? 'Hubungkan akun GoPay terlebih dahulu' : 'Toggle status GoPay'}
                     aria-label="Toggle GoPay"
@@ -660,7 +672,7 @@ function MerchantConnection() {
                   <button
                     type="button"
                     className={`toggle-switch-btn ${isShopeeActive ? 'is-on' : ''}`}
-                    onClick={() => switchProvider(isShopeeActive ? 'gopay' : 'shopeepay')}
+                    onClick={() => requestSwitchProvider(isShopeeActive ? 'gopay' : 'shopeepay')}
                     disabled={busy || !isShopeeConnected}
                     title={!isShopeeConnected ? 'Hubungkan akun ShopeePay terlebih dahulu' : 'Toggle status ShopeePay'}
                     aria-label="Toggle ShopeePay"
@@ -769,6 +781,49 @@ function MerchantConnection() {
                 <QrisCard configured={Boolean(data.shopeeQris?.configured)} onSaved={load} endpoint="/api/shopee/qris" title="QRIS Statis ShopeePay" sectionNumber="02 / QRIS SHOPEEPAY" />
               )}
             </>
+          )}
+
+          {switchTarget && (
+            <div className="gpy-modal-backdrop" onClick={() => !switchingProvider && setSwitchTarget(null)}>
+              <div className="gpy-modal-card" role="dialog" aria-modal="true" aria-labelledby="switch-provider-title" onClick={(e) => e.stopPropagation()}>
+                <div className="gpy-modal-head">
+                  <h4 id="switch-provider-title">
+                    Ganti Gateway ke {switchTarget === 'shopeepay' ? 'ShopeePay' : 'GoPay'}?
+                  </h4>
+                  <button
+                    type="button"
+                    className="gpy-modal-close"
+                    onClick={() => !switchingProvider && setSwitchTarget(null)}
+                    aria-label="Tutup modal"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="gpy-modal-body">
+                  Semua transaksi QRIS baru melalui API akan dialihkan ke koneksi{' '}
+                  <strong>{switchTarget === 'shopeepay' ? 'ShopeePay (Shopee Partner)' : 'GoPay (GoBiz)'}</strong>.
+                  Apakah kamu yakin ingin mengganti provider aktif sekarang?
+                </p>
+                <div className="gpy-modal-actions">
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-secondary"
+                    onClick={() => setSwitchTarget(null)}
+                    disabled={switchingProvider}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="gpy-btn gpy-btn-primary"
+                    onClick={confirmSwitchProvider}
+                    disabled={switchingProvider}
+                  >
+                    {switchingProvider ? <><Loader2 size={14} className="gpy-spin" /> Memproses…</> : 'Konfirmasi'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {logoutModalOpen && (
