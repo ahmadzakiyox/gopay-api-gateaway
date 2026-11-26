@@ -1,6 +1,8 @@
 /*
  * From Uiverse.io by akshat-patel28 - https://uiverse.io/akshat-patel28/quick-baboon-29
  * MIT License, Copyright (c) akshat-patel28 (Akshat Patel)
+ * From Uiverse.io by akshat-patel28 - https://uiverse.io/akshat-patel28/fresh-lizard-63
+ * MIT License, Copyright (c) akshat-patel28 (Akshat Patel)
  */
 .ap-toast-stack {
   position: fixed;
@@ -15,19 +17,19 @@
 
 .ap-toast-card {
   width: 330px;
-  min-height: 76px;
+  min-height: 80px;
   border-radius: 8px;
   box-sizing: border-box;
-  padding: 12px 15px;
+  padding: 10px 15px;
   background-color: #ffffff;
-  box-shadow: rgba(149, 157, 165, 0.25) 0px 8px 24px;
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
   border: 1px solid rgba(15, 23, 42, 0.06);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  justify-content: space-around;
+  gap: 15px;
   pointer-events: auto;
   animation: apToastSlideIn 0.22s ease-out;
 }
@@ -54,7 +56,7 @@
 }
 
 .ap-toast-card.is-error .ap-toast-wave {
-  fill: #dc262628;
+  fill: #fc0c0c3a;
 }
 
 .ap-toast-icon-container {
@@ -72,7 +74,7 @@
 }
 
 .ap-toast-card.is-error .ap-toast-icon-container {
-  background-color: #dc262626;
+  background-color: #fc0c0c48;
 }
 
 .ap-toast-icon {
@@ -82,7 +84,7 @@
 }
 
 .ap-toast-card.is-error .ap-toast-icon {
-  color: #dc2626;
+  color: #d10d0d;
 }
 
 .ap-toast-message-container {
@@ -104,13 +106,13 @@
 
 .ap-toast-message-text {
   color: #269b24;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .ap-toast-card.is-error .ap-toast-message-text {
-  color: #dc2626;
+  color: #d10d0d;
 }
 
 .ap-toast-sub-text {

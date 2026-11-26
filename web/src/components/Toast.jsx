@@ -1,6 +1,8 @@
 /*
  * From Uiverse.io by akshat-patel28 - https://uiverse.io/akshat-patel28/quick-baboon-29
  * MIT License, Copyright (c) akshat-patel28 (Akshat Patel)
+ * From Uiverse.io by akshat-patel28 - https://uiverse.io/akshat-patel28/fresh-lizard-63
+ * MIT License, Copyright (c) akshat-patel28 (Akshat Patel)
  */
 import React, { useEffect, useState } from 'react';
 import './Toast.css';
