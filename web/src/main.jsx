@@ -1384,6 +1384,7 @@ function ApiKeyPage() {
       if (res.success) toast.success('Ping webhook berhasil diterima.');
       else toast.error(res.error || `Webhook mengembalikan HTTP ${res.statusCode}`);
     } catch (e) {
+      toast.error(e.message || 'Gagal menguji ping webhook.');
       setTestStatus({
         loading: false,
         result: { success: false, error: e.message, statusCode: 0, responseTimeMs: 0 }
