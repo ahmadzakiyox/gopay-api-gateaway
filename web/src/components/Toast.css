@@ -1,0 +1,163 @@
+/*
+ * From Uiverse.io by akshat-patel28 - https://uiverse.io/akshat-patel28/quick-baboon-29
+ * MIT License, Copyright (c) akshat-patel28 (Akshat Patel)
+ */
+.ap-toast-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.ap-toast-card {
+  width: 330px;
+  min-height: 76px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  background-color: #ffffff;
+  box-shadow: rgba(149, 157, 165, 0.25) 0px 8px 24px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  pointer-events: auto;
+  animation: apToastSlideIn 0.22s ease-out;
+}
+
+@keyframes apToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ap-toast-wave {
+  position: absolute;
+  transform: rotate(90deg);
+  left: -31px;
+  top: 32px;
+  width: 80px;
+  fill: #04e4003a;
+  pointer-events: none;
+}
+
+.ap-toast-card.is-error .ap-toast-wave {
+  fill: #dc262628;
+}
+
+.ap-toast-icon-container {
+  width: 35px;
+  height: 35px;
+  min-width: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #04e40048;
+  border-radius: 50%;
+  margin-left: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.ap-toast-card.is-error .ap-toast-icon-container {
+  background-color: #dc262626;
+}
+
+.ap-toast-icon {
+  width: 17px;
+  height: 17px;
+  color: #269b24;
+}
+
+.ap-toast-card.is-error .ap-toast-icon {
+  color: #dc2626;
+}
+
+.ap-toast-message-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.ap-toast-message-text,
+.ap-toast-sub-text {
+  margin: 0;
+  cursor: default;
+}
+
+.ap-toast-message-text {
+  color: #269b24;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ap-toast-card.is-error .ap-toast-message-text {
+  color: #dc2626;
+}
+
+.ap-toast-sub-text {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.35;
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.ap-toast-close {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #555;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ap-toast-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #17191d;
+}
+
+.ap-toast-cross-icon {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 640px) {
+  .ap-toast-stack {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    align-items: center;
+  }
+
+  .ap-toast-card {
+    width: 100%;
+    max-width: 380px;
+  }
+}

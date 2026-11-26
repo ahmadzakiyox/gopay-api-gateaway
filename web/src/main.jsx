@@ -15,6 +15,7 @@ import { Header } from './components/Header';
 import { LoginHeader } from './components/LoginHeader';
 import { LandingPage } from './LandingPage';
 import { Footer } from './components/Footer';
+import { ToastContainer, toast, useToastState } from './components/Toast';
 
 const API = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3100' : 'https://api-qris.alternat.my.id');
 async function request(path, options = {}) {
@@ -35,7 +36,7 @@ async function request(path, options = {}) {
 
 function Login() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { error, setError } = useToastState();
   const login = async () => {
     setLoading(true);
     setError('');
@@ -126,8 +127,7 @@ function QrisCard({ configured, onSaved, endpoint = '/api/qris', title = 'QRIS s
   const [payload, setPayload] = useState('');
   const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const { notice, setNotice, error, setError } = useToastState();
   const [dragging, setDragging] = useState(false);
 
   const handleFile = async (selected) => {
@@ -265,8 +265,7 @@ function MerchantConnection() {
   const [loggingOutShopee, setLoggingOutShopee] = useState(false);
 
   // Common UI state
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
+  const { notice, setNotice, error, setError } = useToastState();
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -867,7 +866,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
   const [orderId, setOrderId] = useState(() => `api-test-${Date.now()}`);
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState('');
+  const { error, setError } = useToastState();
   const [responseJson, setResponseJson] = useState(null);
   const [payment, setPayment] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -967,6 +966,7 @@ function ApiKeySandboxCard({ apiKey, apiKeyPrefix, onRequireKey }) {
       setPayment(data.payment);
       setSecondsLeft(Number(data.payment.expiresIn) || 300);
       lastLoggedStatusRef.current = data.payment.status;
+      toast.success(`QRIS test dibuat (Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')}).`);
       addLog(
         'pending',
         `PENDING (${data.payment.orderId}) — Tagihan QRIS aktif sebesar Rp${Number(data.payment.payableAmount).toLocaleString('id-ID')} (dasar Rp${Number(data.payment.baseAmount).toLocaleString('id-ID')} + penanda ${data.payment.surcharge}). Berlaku 5 menit.`
@@ -1293,8 +1293,7 @@ function ApiKeyPage() {
   const [apiKey, setApiKey] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
   const [copiedTarget, setCopiedTarget] = useState('');
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
+  const { notice, setNotice, error, setError } = useToastState();
   const [busy, setBusy] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -1389,6 +1388,8 @@ function ApiKeyPage() {
         body: JSON.stringify({ url: webhookUrl, secret: webhookSecret })
       });
       setTestStatus({ loading: false, result: res });
+      if (res.success) toast.success('Ping webhook berhasil diterima.');
+      else toast.error(res.error || `Webhook mengembalikan HTTP ${res.statusCode}`);
     } catch (e) {
       setTestStatus({
         loading: false,
@@ -1805,18 +1806,24 @@ function App() {
     window.location.href = '/';
   };
 
-  if (isAbout) return <AboutPage user={auth?.user} onLogout={logout} />;
-  if (isPrivacy) return <PrivacyPage user={auth?.user} onLogout={logout} />;
-  if (isTerms) return <TermsPage user={auth?.user} onLogout={logout} />;
-  if (isFaq) return <FaqPage user={auth?.user} onLogout={logout} />;
-  if (isDocuments) return <DocumentsPage request={request} user={auth?.user} />;
+  let content = null;
+  if (isAbout) content = <AboutPage user={auth?.user} onLogout={logout} />;
+  else if (isPrivacy) content = <PrivacyPage user={auth?.user} onLogout={logout} />;
+  else if (isTerms) content = <TermsPage user={auth?.user} onLogout={logout} />;
+  else if (isFaq) content = <FaqPage user={auth?.user} onLogout={logout} />;
+  else if (isDocuments) content = <DocumentsPage request={request} user={auth?.user} />;
+  else if (!auth) content = <div className="loading">Memuat…</div>;
+  else if (!auth.authenticated) content = <Login />;
+  else if (path === '/gpy-manager' || path === '/koneksi-merchant') content = <MerchantConnection />;
+  else if (path === '/apikey') content = <ApiKeyPage />;
+  else content = <StudioTransactionDashboard request={request} user={auth.user || {}} />;
 
-  if (!auth) return <div className="loading">Memuat…</div>;
-  if (!auth.authenticated) return <Login />;
-
-  if (path === '/gpy-manager' || path === '/koneksi-merchant') return <MerchantConnection />;
-  if (path === '/apikey') return <ApiKeyPage />;
-  return <StudioTransactionDashboard request={request} user={auth.user || {}} />;
+  return (
+    <>
+      <ToastContainer />
+      {content}
+    </>
+  );
 }
 
 createRoot(document.getElementById('root')).render(<App />);
