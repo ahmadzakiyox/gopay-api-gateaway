@@ -12,6 +12,11 @@
   .page-shell:has(> .app-shell) > .foodnoms-footer {
     margin-left: 0;
     width: 100%;
+    padding: 36px 0 24px;
+  }
+
+  .page-shell:has(> .app-shell) > .foodnoms-footer .footer-top {
+    margin-bottom: 28px;
   }
 }
 
