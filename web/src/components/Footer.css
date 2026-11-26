@@ -7,11 +7,11 @@
   box-sizing: border-box;
 }
 
-/* Desktop with sidebar */
+/* Desktop footer spans full width below app-shell */
 @media (min-width: 769px) {
   .page-shell:has(> .app-shell) > .foodnoms-footer {
-    margin-left: 236px;
-    width: calc(100% - 236px);
+    margin-left: 0;
+    width: 100%;
   }
 }
 

@@ -137,8 +137,24 @@
 @media (min-width: 769px) {
   .workspace-nav {
     width: 236px;
-    gap: 18px;
-    padding: 22px 16px;
+    height: auto;
+    max-height: 100vh;
+    gap: 16px;
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0 0 12px 0;
+  }
+
+  .app-shell .workspace-nav {
+    position: sticky;
+    top: 0;
+    left: auto;
+    align-self: start;
+  }
+
+  .workspace-nav .side-bottom {
+    margin-top: 8px;
+    padding-top: 14px;
   }
 
   .workspace-nav .brand {

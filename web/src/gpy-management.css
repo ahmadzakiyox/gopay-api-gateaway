@@ -165,7 +165,11 @@
 
 @media (min-width: 769px) {
   .gpy-management-shell {
-    margin-left: 236px;
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    align-items: start;
   }
 
   .gpy-dashboard {
