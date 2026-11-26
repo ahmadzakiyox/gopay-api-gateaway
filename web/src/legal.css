@@ -34,6 +34,12 @@
 @media (min-width: 769px) {
   .legal-page-shell:has(> .workspace-nav) .legal-page {
     margin-left: 236px;
+    padding-top: 96px;
+    transition: margin-left 0.2s ease;
+  }
+
+  body.desktop-sidebar-collapsed .legal-page-shell:has(> .workspace-nav) .legal-page {
+    margin-left: 68px;
   }
 }
 

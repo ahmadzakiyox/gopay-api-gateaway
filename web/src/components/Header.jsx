@@ -1,13 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Activity, WalletCards, KeyRound, FileText } from 'lucide-react';
+import { LogOut, Activity, WalletCards, KeyRound, FileText, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import './Header.css';
 
 export function Header({ onLogout, managementMode = false, user = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('ap_sidebar_collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [profile, setProfile] = useState(user);
   const [imgFailed, setImgFailed] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
+
+  useEffect(() => {
+    document.body.classList.toggle('desktop-sidebar-collapsed', sidebarCollapsed);
+    try {
+      localStorage.setItem('ap_sidebar_collapsed', sidebarCollapsed ? '1' : '0');
+    } catch {}
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (user) {
@@ -64,23 +78,68 @@ export function Header({ onLogout, managementMode = false, user = null }) {
     { href: '/apikey', label: 'Api Key', icon: KeyRound, active: path.startsWith('/apikey') || path.startsWith('/api-key') },
     { href: '/documents', label: 'Doc', icon: FileText, active: path.startsWith('/documents') }
   ];
+  const headerLinks = [
+    { href: '/terms', label: 'Syarat & Ketentuan', active: path.startsWith('/terms') },
+    { href: '/privacy', label: 'Kebijakan Privasi', active: path.startsWith('/privacy') },
+    { href: '/faq', label: 'FAQ', active: path.startsWith('/faq') }
+  ];
 
   return (
     <>
-      <aside className="workspace-nav header-nav">
+      <header className="desktop-top-header">
+        <div className="desktop-top-left">
+          <a className="desktop-top-brand" href="/dashboard">
+            <img src="/logo.png" alt="Alternate Pay Logo" className="brand-logo" />
+            <span className="brand-text">
+              Alternate <b>Pay</b>
+            </span>
+          </a>
+          <span className="desktop-top-divider" aria-hidden="true" />
+          <nav className="desktop-top-links" aria-label="Informasi dan legal">
+            {headerLinks.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className={`desktop-top-link${item.active ? ' active' : ''}`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </header>
+      <aside className={`workspace-nav header-nav${sidebarCollapsed ? ' is-collapsed' : ''}`}>
         <a className="brand" href="/dashboard">
           <img src="/logo.png" alt="Alternate Pay Logo" className="brand-logo" />
           <span className="brand-text">
             Alternate <b>Pay</b>
           </span>
         </a>
+        <div className="desktop-sidebar-top">
+          <span className="desktop-sidebar-label">WORKSPACE</span>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            aria-label={sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'}
+            title={sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          </button>
+        </div>
         <nav className="desktop-nav" aria-label="Navigasi utama">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <a key={item.href} href={item.href} className={`desktop-nav-link${item.active ? ' active' : ''}`}>
-                <Icon size={17} />
-                <span>{item.label}</span>
+              <a
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                aria-label={item.label}
+                className={`desktop-nav-link${item.active ? ' active' : ''}`}
+              >
+                <Icon size={18} />
+                <span className="desktop-nav-text">{item.label}</span>
               </a>
             );
           })}
@@ -93,16 +152,16 @@ export function Header({ onLogout, managementMode = false, user = null }) {
           </div>
         </button>
         <div className="side-bottom">
-          <div className="nav-profile-section">
+          <div className="nav-profile-section" title={displayName}>
             {avatarNode}
             <div className="nav-profile-info">
               <span className="nav-profile-name">{displayName}</span>
               <span className="nav-profile-sub">Workspace</span>
             </div>
           </div>
-          <button className="logout" onClick={onLogout}>
+          <button className="logout" onClick={onLogout} title="Keluar" aria-label="Keluar">
             <LogOut size={16} />
-            Keluar
+            <span className="logout-text">Keluar</span>
           </button>
         </div>
       </aside>

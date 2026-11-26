@@ -130,36 +130,152 @@
   font-size: 13px;
 }
 
+.desktop-top-header,
+.desktop-sidebar-top,
 .workspace-nav nav.desktop-nav {
   display: none !important;
 }
 
 @media (min-width: 769px) {
+  .desktop-top-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    padding: 0 24px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    z-index: 120;
+  }
+
+  .desktop-top-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .desktop-top-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+  }
+
+  .desktop-top-brand:hover {
+    background: #f0f2f0;
+  }
+
+  .desktop-top-brand .brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .desktop-top-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--line);
+  }
+
+  .desktop-top-links {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .desktop-top-link {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5b6470;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .desktop-top-link:hover {
+    background: #f0f4f1;
+    color: #285846;
+  }
+
+  .desktop-top-link.active {
+    background: #eef3f0;
+    color: #285846;
+    font-weight: 600;
+  }
+
   .workspace-nav {
     width: 236px;
     height: auto;
-    max-height: 100vh;
-    gap: 16px;
-    padding: 20px 16px;
+    max-height: calc(100vh - 60px);
+    top: 60px;
+    gap: 12px;
+    padding: 18px 16px 20px;
     border-bottom: 1px solid var(--line);
     border-radius: 0 0 12px 0;
+    transition: width 0.2s ease, padding 0.2s ease;
   }
 
   .app-shell .workspace-nav {
     position: sticky;
-    top: 0;
+    top: 60px;
     left: auto;
     align-self: start;
+  }
+
+  .workspace-nav .brand {
+    display: none;
+  }
+
+  .desktop-sidebar-top {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 4px;
+  }
+
+  .desktop-sidebar-label {
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.11em;
+    color: #858b95;
+    padding-left: 8px;
+  }
+
+  .sidebar-collapse-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #5b6470;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .sidebar-collapse-btn:hover {
+    background: #f0f4f1;
+    color: #285846;
+    border-color: var(--line);
   }
 
   .workspace-nav .side-bottom {
     margin-top: 8px;
     padding-top: 14px;
-  }
-
-  .workspace-nav .brand {
-    margin-bottom: 2px;
-    padding: 8px 10px;
   }
 
   .workspace-nav .hamburger-btn {
@@ -170,16 +286,6 @@
     display: flex !important;
     flex-direction: column;
     gap: 4px;
-  }
-
-  .workspace-nav nav.desktop-nav::before {
-    content: 'WORKSPACE';
-    display: block;
-    font-size: 10px;
-    font-weight: 650;
-    letter-spacing: 0.11em;
-    color: #858b95;
-    padding: 0 12px 6px;
   }
 
   .desktop-nav-link {
@@ -205,6 +311,63 @@
     background: #eef3f0;
     color: #285846;
     font-weight: 600;
+  }
+
+  .workspace-nav.is-collapsed {
+    width: 68px;
+    padding: 18px 10px 16px;
+    align-items: center;
+  }
+
+  .workspace-nav.is-collapsed .desktop-sidebar-top {
+    justify-content: center;
+    padding: 0 0 4px;
+    width: 100%;
+  }
+
+  .workspace-nav.is-collapsed .desktop-sidebar-label {
+    display: none;
+  }
+
+  .workspace-nav.is-collapsed nav.desktop-nav {
+    width: 100%;
+    align-items: center;
+  }
+
+  .workspace-nav.is-collapsed .desktop-nav-link {
+    width: 44px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .workspace-nav.is-collapsed .desktop-nav-text {
+    display: none;
+  }
+
+  .workspace-nav.is-collapsed .side-bottom {
+    width: 100%;
+    align-items: center;
+  }
+
+  .workspace-nav.is-collapsed .nav-profile-section {
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .workspace-nav.is-collapsed .nav-profile-info {
+    display: none;
+  }
+
+  .workspace-nav.is-collapsed .logout {
+    width: 44px;
+    height: 40px;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+
+  .workspace-nav.is-collapsed .logout-text {
+    display: none;
   }
 }
 

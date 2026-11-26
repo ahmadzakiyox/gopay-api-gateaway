@@ -170,6 +170,12 @@
     display: grid;
     grid-template-columns: 236px minmax(0, 1fr);
     align-items: start;
+    padding-top: 60px;
+    transition: grid-template-columns 0.2s ease;
+  }
+
+  body.desktop-sidebar-collapsed .gpy-management-shell {
+    grid-template-columns: 68px minmax(0, 1fr);
   }
 
   .gpy-dashboard {

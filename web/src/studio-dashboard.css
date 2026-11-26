@@ -153,8 +153,10 @@ button.studio-metric:hover,button.studio-metric.is-active{background:#f8faf8}
 .studio-table .payment-badge.cancelled{color:#ea580c;background:rgba(234,88,12,.12);border:none}
 .studio-table .payment-badge.expired{color:#991b1b;background:rgba(220,38,38,.12);border:none}
 @media(min-width:769px){
-  .studio-shell{margin-left:0;width:100%;display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start}
-  .studio-shell .workspace-nav{width:236px;flex:0 0 236px;padding:20px 16px}
+  .studio-shell{margin-left:0;width:100%;display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;padding-top:60px;transition:grid-template-columns .2s ease}
+  body.desktop-sidebar-collapsed .studio-shell{grid-template-columns:68px minmax(0,1fr)}
+  .studio-shell .workspace-nav{width:236px;flex:0 0 236px;padding:18px 16px 20px}
+  body.desktop-sidebar-collapsed .studio-shell .workspace-nav{width:68px;flex:0 0 68px;padding:18px 10px 16px}
   .studio-dashboard{max-width:1260px;padding:32px 36px 56px}
   .analytics-panel{padding:22px 24px 20px;margin-bottom:22px}
   .analytics-toolbar{margin-bottom:20px}
