@@ -1,0 +1,1684 @@
+/* Tabs for Koneksi Merchant */
+.merchant-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: #f3f5f8;
+  border: 1px solid #e2e6ec;
+  padding: 4px;
+  border-radius: 11px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.merchant-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #5b6470;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.merchant-tab-btn:hover {
+  color: #17191d;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.merchant-tab-btn.is-active {
+  background: #ffffff;
+  color: #17191d;
+  font-weight: 600;
+  border-color: rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.merchant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.merchant-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.merchant-badge-active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.merchant-badge-inactive {
+  background: #e9ecf1;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .merchant-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .merchant-tab-btn {
+    width: 100%;
+    padding: 8px 10px;
+  }
+}
+
+/* Switch toggle switch for provider */
+.toggle-switch-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.toggle-switch-info h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #20252a;
+}
+
+.toggle-switch-info p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #737983;
+}
+
+.toggle-switch-btn {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  padding: 2px;
+}
+
+.toggle-switch-btn.is-on {
+  background: #285846;
+}
+
+.toggle-switch-handle {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+}
+
+.toggle-switch-btn.is-on .toggle-switch-handle {
+  transform: translateX(20px);
+}
+
+/* GoPay Management page styling - Studio design system tokens & alignment */
+
+.gpy-management-shell {
+  min-height: 100vh;
+  background: #f8f9fb;
+  color: #17191d;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --studio-border: #e8eaee;
+  --studio-muted: #737983;
+  --studio-brand: #285846;
+  margin-left: 220px;
+}
+
+@media (max-width: 768px) {
+  .gpy-management-shell {
+    margin-left: 0;
+    margin-top: 72px;
+  }
+}
+
+@media (min-width: 769px) {
+  .gpy-management-shell {
+    min-height: 0;
+    flex: 1 0 auto;
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    align-items: start;
+    padding-top: 60px;
+    transition: grid-template-columns 0.2s ease;
+  }
+
+  body.desktop-sidebar-collapsed .gpy-management-shell {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .gpy-management-shell .gpy-dashboard {
+    max-width: 1260px;
+    padding: 28px 36px 36px;
+  }
+
+  .gpy-management-shell .gpy-panel {
+    border-radius: 8px;
+    padding: 24px 26px;
+    margin-bottom: 22px;
+  }
+
+  .gpy-management-shell .gpy-panel-head h3 {
+    font-size: 16px;
+  }
+
+  .gpy-management-shell .gpy-desc {
+    font-size: 13px;
+  }
+
+  .gpy-management-shell .gpy-grid-two {
+    gap: 22px;
+    margin-bottom: 22px;
+  }
+
+  .gpy-management-shell .gpy-status-row {
+    padding: 13px 0;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .gpy-management-shell .gpy-dashboard {
+    padding: 24px 24px 32px;
+  }
+}
+
+.gpy-dashboard {
+  min-width: 0;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 34px clamp(20px, 3vw, 44px) 48px;
+}
+
+@media (max-width: 700px) {
+  .gpy-dashboard {
+    padding: 19px 15px 32px;
+  }
+}
+
+/* Header section */
+.gpy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.gpy-header h1 {
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  color: #20252a;
+  margin: 0;
+  font-weight: 600;
+}
+
+.gpy-header p {
+  font-size: 11px;
+  color: #818791;
+  margin: 4px 0 0;
+}
+
+/* Profile badge in header */
+.gpy-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gpy-avatar {
+  width: 32px;
+  height: 32px;
+  background: #285846;
+  color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.gpy-profile-info b {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #20252a;
+}
+
+.gpy-profile-info small {
+  display: block;
+  font-size: 10px;
+  color: #818791;
+  margin-top: 2px;
+}
+
+@media (max-width: 700px) {
+  .gpy-profile-info {
+    display: none;
+  }
+}
+
+/* Panels */
+.gpy-panel {
+  background: #fff;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) {
+  .gpy-panel {
+    padding: 16px 14px;
+    margin-bottom: 14px;
+  }
+}
+
+.gpy-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  color: #285846;
+}
+
+.gpy-panel-head h3 {
+  color: #20252a;
+  font-size: 14px;
+  letter-spacing: -0.015em;
+  margin: 3px 0 0;
+  font-weight: 600;
+}
+
+.gpy-section-label {
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  color: #858b95;
+  font-weight: 650;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.gpy-desc {
+  font-size: 11px;
+  color: #737983;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+/* Grid layout for cards */
+.gpy-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .gpy-grid-two {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+}
+
+/* Status rows inside panel */
+.gpy-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid #eff0f2;
+  font-size: 11px;
+}
+
+.gpy-status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #737983;
+}
+
+.gpy-status-left svg {
+  color: #858b95;
+  flex-shrink: 0;
+}
+
+.gpy-status-val {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gpy-status-val strong {
+  font-weight: 600;
+  color: #20252a;
+  font-size: 11px;
+}
+
+.gpy-status-val strong.gpy-status-active {
+  display: inline-block;
+  background: rgba(46, 155, 111, 0.13);
+  color: #34a97b;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  line-height: 1.35;
+}
+
+.gpy-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 500;
+  background: #fdf2e9;
+  color: #9a6a50;
+}
+
+.gpy-pill.connected {
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+/* Forms inside panels */
+.gpy-form {
+  margin-top: 14px;
+}
+
+.gpy-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #555c65;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.gpy-input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: 0 11px;
+  font-size: 11px;
+  color: #20252a;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gpy-input:focus {
+  border-color: #285846;
+  outline: 0;
+  box-shadow: 0 0 0 3px #eef3f0;
+}
+
+.gpy-textarea {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: 10px 11px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #20252a;
+  background: #fff;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gpy-textarea:focus {
+  border-color: #285846;
+  outline: 0;
+  box-shadow: 0 0 0 3px #eef3f0;
+}
+
+/* Buttons */
+.gpy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 35px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.gpy-btn-primary {
+  background: #285846;
+  color: #fff;
+  border: 0;
+}
+
+.gpy-btn-primary:hover:not(:disabled) {
+  background: #1e4536;
+}
+
+.gpy-btn-secondary {
+  background: #fff;
+  color: #4e555e;
+  border: 1px solid var(--studio-border);
+}
+
+.gpy-btn-secondary:hover:not(:disabled) {
+  background: #f8faf8;
+  border-color: #285846;
+  color: #285846;
+}
+
+.gpy-btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.gpy-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.gpy-btn-full {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.gpy-btn-icon {
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #f0f4f1;
+  border: 1px solid var(--studio-border);
+  color: #285846;
+}
+
+.gpy-btn-icon:hover {
+  background: #e2ede5;
+}
+
+.gpy-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Key box */
+.gpy-key-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f8f9fb;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  margin: 12px 0 12px;
+}
+
+.gpy-key-box code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #252a30;
+  word-break: break-all;
+}
+
+.gpy-key-text {
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1), filter 0.22s cubic-bezier(0.22, 1, 0.36, 1), transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gpy-key-text.is-masked {
+  opacity: 0.88;
+}
+
+.gpy-key-text.is-revealed {
+  opacity: 1;
+}
+
+.gpy-key-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gpy-key-icon-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #285846;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.16s ease;
+}
+
+.gpy-key-icon-btn:hover {
+  background: #e9f1ec;
+}
+
+.gpy-key-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.gpy-eye-stack {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+}
+
+.gpy-eye-icon {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gpy-eye-closed {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.gpy-eye-open {
+  opacity: 0;
+  transform: scale(0.72) rotate(-12deg);
+}
+
+.gpy-eye-btn.is-open .gpy-eye-closed {
+  opacity: 0;
+  transform: scale(0.72) rotate(12deg);
+}
+
+.gpy-eye-btn.is-open .gpy-eye-open {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.gpy-key-box button {
+  border: 0;
+  background: none;
+  color: #285846;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Notices and Banners */
+.gpy-notice {
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef7f2;
+  color: #1e5a43;
+  border: 1px solid #d4ebd9;
+}
+
+.gpy-error {
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdf2f0;
+  color: #a73c2b;
+  border: 1px solid #fad5cf;
+}
+
+.gpy-warning-text {
+  font-size: 10px;
+  color: #9a6a50;
+  margin: 8px 0 0;
+}
+
+.gpy-muted-text {
+  font-size: 10px;
+  color: #818791;
+  margin: 8px 0 0;
+}
+
+.gpy-saved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #285846;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ============ QRIS upload card ============ */
+.gpy-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gpy-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 26px 18px;
+  border: 1px dashed #d3d8de;
+  border-radius: 7px;
+  background: #fbfcfd;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.16s, background 0.16s;
+}
+
+.gpy-drop:hover,
+.gpy-drop.is-dragging {
+  border-color: #285846;
+  background: #f2f7f4;
+}
+
+.gpy-drop:focus-visible {
+  outline: 2px solid #285846;
+  outline-offset: 2px;
+}
+
+.gpy-drop-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eef3f0;
+  color: #285846;
+  margin-bottom: 3px;
+}
+
+.gpy-drop b {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #20252a;
+}
+
+.gpy-drop small {
+  font-size: 10px;
+  color: #8a9099;
+}
+
+.gpy-saved-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d4ebd9;
+  background: #f3faf6;
+  border-radius: 6px;
+  color: #285846;
+  margin-bottom: 12px;
+}
+
+.gpy-saved-note strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e5a43;
+}
+
+.gpy-saved-note small {
+  display: block;
+  font-size: 10px;
+  color: #5f8a76;
+  margin-top: 1px;
+}
+
+.gpy-qris-preview {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #fbfcfd;
+}
+
+.gpy-qris-media {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.gpy-qris-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gpy-qris-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(23, 25, 29, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.gpy-qris-remove:hover {
+  background: #a73c2b;
+}
+
+.gpy-qris-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-qris-file {
+  font-size: 11px;
+  font-weight: 600;
+  color: #20252a;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpy-qris-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.gpy-qris-state.is-reading {
+  background: #f4f6f8;
+  color: #5d646d;
+}
+
+.gpy-qris-state.is-ok {
+  background: rgba(46, 155, 111, 0.13);
+  color: #34a97b;
+}
+
+.gpy-qris-state.is-error {
+  background: #fdf2f0;
+  color: #a73c2b;
+}
+
+.gpy-qris-payload {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  line-height: 1.5;
+  color: #555c65;
+  background: #fff;
+  border: 1px solid var(--studio-border);
+  border-radius: 5px;
+  padding: 7px 9px;
+  max-height: 62px;
+  overflow-y: auto;
+  word-break: break-all;
+}
+
+.gpy-notice-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #34a97b;
+  margin: 10px 0 0;
+}
+
+.gpy-spin {
+  animation: gpy-spin 0.9s linear infinite;
+}
+
+@keyframes gpy-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .gpy-qris-preview {
+    flex-direction: column;
+  }
+  .gpy-qris-media {
+    width: 100%;
+    height: 150px;
+  }
+}
+
+/* ============ Simulation card ============ */
+.gpy-amount-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gpy-amount-field:focus-within {
+  border-color: #285846;
+  box-shadow: 0 0 0 3px #eef3f0;
+}
+
+.gpy-amount-field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a9099;
+}
+
+.gpy-amount-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #17191d;
+  font-family: inherit;
+}
+
+.gpy-amount-field input::placeholder {
+  color: #c2c7ce;
+  font-weight: 500;
+}
+
+.gpy-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gpy-chip {
+  height: 27px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5d646d;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gpy-chip:hover {
+  border-color: #285846;
+  color: #285846;
+}
+
+.gpy-chip.is-active {
+  background: #285846;
+  border-color: #285846;
+  color: #fff;
+}
+
+.gpy-btn-block {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.gpy-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gpy-sim-result {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gpy-sim-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  background: #f8f9fb;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+}
+
+.gpy-sim-head-main {
+  min-width: 0;
+}
+
+.gpy-sim-amount {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #17191d;
+}
+
+.gpy-sim-head-main small {
+  display: block;
+  font-size: 10px;
+  color: #818791;
+  margin-top: 2px;
+}
+
+.gpy-sim-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-sim-timer-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #818791;
+}
+
+.gpy-sim-timer-label b {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #20252a;
+  letter-spacing: 0.02em;
+}
+
+.gpy-sim-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: #eceef1;
+  overflow: hidden;
+}
+
+.gpy-sim-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #285846;
+  transition: width 1s linear;
+}
+
+.gpy-sim-qr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+}
+
+.gpy-sim-qr-frame {
+  padding: 9px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.gpy-sim-qr {
+  display: block;
+  width: 190px;
+  height: 190px;
+}
+
+.gpy-sim-hint {
+  font-size: 10px;
+  color: #818791;
+  margin: 0;
+  text-align: center;
+}
+
+.gpy-sim-payload {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: #555c65;
+  background: #f8f9fb;
+  padding: 8px 10px;
+  border-radius: 5px;
+  word-break: break-all;
+}
+
+.gpy-sim-payload code {
+  flex: 1;
+  min-width: 0;
+  max-height: 48px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.gpy-sim-payload button {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  color: #285846;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.gpy-sim-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 15px;
+  border: 1px solid #f2ddd6;
+  border-radius: 7px;
+  background: #fdf7f5;
+  color: #9a6a50;
+}
+
+.gpy-sim-empty p {
+  font-size: 10.5px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gpy-payment-success {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #d4ebd9;
+  border-radius: 6px;
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+.gpy-payment-success strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gpy-payment-success span {
+  display: block;
+  font-size: 10px;
+  color: #3b765b;
+  margin-top: 2px;
+}
+
+/* ============ API Sandbox card ============ */
+.gpy-sandbox-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .gpy-sandbox-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gpy-orderid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gpy-orderid-row .gpy-input {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+}
+
+.gpy-orderid-row .gpy-btn {
+  height: 46px;
+  padding: 0 13px;
+  flex-shrink: 0;
+}
+
+.gpy-code-section {
+  margin-top: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 7px;
+  background: #f8f9fb;
+  overflow: hidden;
+}
+
+.gpy-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f3f5;
+  border-bottom: 1px solid var(--studio-border);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #363c44;
+}
+
+.gpy-code-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gpy-code-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gpy-code-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  color: #285846;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.gpy-code-pre {
+  margin: 0;
+  padding: 11px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: #20252a;
+  background: #fbfcfd;
+  overflow-x: auto;
+  max-height: 240px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gpy-status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e6eaee;
+  color: #4e555e;
+}
+
+.gpy-status-dot.is-pending,
+.gpy-pill.is-pending {
+  background: #fff4df;
+  color: #946200;
+  border-color: #f3dcab;
+}
+
+.gpy-status-dot.is-paid {
+  background: rgba(46, 155, 111, 0.14);
+  color: #1e6b4e;
+}
+
+.gpy-status-dot.is-expired,
+.gpy-pill.is-expired {
+  background: #fdf2f0;
+  color: #a73c2b;
+  border-color: #fad5cf;
+}
+
+.gpy-log-box {
+  border-top: 1px solid var(--studio-border);
+  padding: 10px 12px;
+  background: #f4f6f8;
+}
+
+.gpy-log-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b727c;
+  margin-bottom: 7px;
+}
+
+.gpy-log-empty {
+  font-size: 10.5px;
+  color: #7d848e;
+  line-height: 1.5;
+}
+
+.gpy-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpy-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: #fff;
+  border: 1px solid var(--studio-border);
+}
+
+.gpy-log-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #7d848e;
+  flex-shrink: 0;
+}
+
+.gpy-log-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #eef1f4;
+  color: #495058;
+}
+
+.gpy-log-badge.is-pending {
+  background: #fff4df;
+  color: #946200;
+}
+
+.gpy-log-badge.is-paid {
+  background: rgba(46, 155, 111, 0.14);
+  color: #1e6b4e;
+}
+
+.gpy-log-badge.is-expired,
+.gpy-log-badge.is-error {
+  background: #fdf2f0;
+  color: #a73c2b;
+}
+
+.gpy-log-msg {
+  color: #20252a;
+  word-break: break-word;
+}
+
+/* ============ Regenerate Modal ============ */
+.gpy-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(18, 22, 26, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.gpy-modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 18px 42px rgba(15, 20, 25, 0.16);
+}
+
+.gpy-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.gpy-modal-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #17191d;
+  letter-spacing: -0.015em;
+}
+
+.gpy-modal-close {
+  border: 0;
+  background: none;
+  color: #7d848e;
+  cursor: pointer;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+}
+
+.gpy-modal-close:hover {
+  background: #f0f3f5;
+  color: #20252a;
+}
+
+.gpy-modal-body {
+  margin: 0 0 16px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #555c65;
+}
+
+.gpy-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gpy-modal-actions .gpy-btn {
+  min-width: 96px;
+  justify-content: center;
+}
+
+/* ============ Cancelled Status & Sandbox Footer ============ */
+.gpy-pill.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.gpy-status-dot.is-cancelled {
+  color: #ea580c;
+}
+
+.gpy-status-dot.is-cancelled::before {
+  background: #ea580c;
+}
+
+.gpy-log-badge.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.gpy-sim-empty.is-cancelled {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.gpy-sandbox-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gpy-btn-cancel {
+  width: 100%;
+  justify-content: center;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fdba74;
+}
+
+.gpy-btn-cancel:hover:not(:disabled) {
+  background: #ffedd5;
+  border-color: #fb923c;
+}
+
+/* ============ Documents Page ============ */
+.gpy-doc-steps {
+  margin: 4px 0 12px;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #495059;
+}
+
+.gpy-doc-steps strong {
+  color: #1f2429;
+  font-weight: 600;
+}
+
+.gpy-doc-steps code,
+.gpy-doc-note code,
+.gpy-doc-param p code {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  background: #f2f4f7;
+  color: #1f2429;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.gpy-doc-link {
+  color: #285846;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.gpy-doc-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fb;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: 8px 11px;
+  margin: 4px 0 12px;
+  overflow-x: auto;
+}
+
+.gpy-doc-endpoint code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #1f2429;
+  white-space: nowrap;
+}
+
+.gpy-doc-method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.gpy-doc-method.is-post {
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+.gpy-doc-method.is-get {
+  background: #eef4fb;
+  color: #1d4ed8;
+}
+
+.gpy-doc-method.is-cancel {
+  background: #fff4ec;
+  color: #ea580c;
+}
+
+.gpy-doc-note {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #555c65;
+}
+
+.gpy-doc-param-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gpy-doc-param {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  background: #fafbfc;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+}
+
+.gpy-doc-param > code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f2429;
+}
+
+.gpy-doc-req,
+.gpy-doc-opt {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.gpy-doc-req {
+  background: #eef7f2;
+  color: #1e5a43;
+}
+
+.gpy-doc-opt {
+  background: #f1f3f5;
+  color: #626a73;
+}
+
+.gpy-doc-param p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #555c65;
+}
+
+.gpy-doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+
+.gpy-doc-tab {
+  border: 1px solid var(--studio-border);
+  background: #ffffff;
+  color: #555c65;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gpy-doc-tab.is-active.is-paid {
+  background: #eef7f2;
+  color: #166534;
+  border-color: #b7dec9;
+}
+
+.gpy-doc-tab.is-active.is-pending {
+  background: #fef9ec;
+  color: #92400e;
+  border-color: #f3d68a;
+}
+
+.gpy-doc-tab.is-active.is-cancelled {
+  background: #fff4ec;
+  color: #ea580c;
+  border-color: #fdba74;
+}
+
+.gpy-doc-tab.is-active.is-expired {
+  background: #fdf2f0;
+  color: #991b1b;
+  border-color: #f5c2ba;
+}
